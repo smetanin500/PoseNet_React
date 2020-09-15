@@ -1,4 +1,9 @@
-import {drawKeyPoints, drawSkeleton} from './utils'
+import {
+  drawKeyPoints,
+  drawSkeleton,
+  calculateStretch,
+  drawStretch
+} from './utils'
 import React, {Component} from 'react'
 import * as posenet from '@tensorflow-models/posenet'
 
@@ -24,6 +29,10 @@ class PoseNet extends Component {
 
   constructor(props) {
     super(props, PoseNet.defaultProps)
+
+    this.state = {
+      stretchData: [[false, false]]
+    }
   }
 
   getCanvas = elem => {
@@ -100,21 +109,21 @@ class PoseNet extends Component {
   poseDetectionFrame(canvasContext) {
     const {
       algorithm,
-      imageScaleFactor, 
-      flipHorizontal, 
-      outputStride, 
-      minPoseConfidence, 
-      minPartConfidence, 
-      maxPoseDetections, 
-      nmsRadius, 
-      videoWidth, 
-      videoHeight, 
-      showVideo, 
-      showPoints, 
-      showSkeleton, 
-      skeletonColor, 
-      skeletonLineWidth 
-      } = this.props
+      imageScaleFactor,
+      flipHorizontal,
+      outputStride,
+      minPoseConfidence,
+      minPartConfidence,
+      maxPoseDetections,
+      nmsRadius,
+      videoWidth,
+      videoHeight,
+      showVideo,
+      showPoints,
+      showSkeleton,
+      skeletonColor,
+      skeletonLineWidth
+    } = this.props
 
     const posenetModel = this.posenet
     const video = this.video
@@ -125,22 +134,22 @@ class PoseNet extends Component {
       switch (algorithm) {
         case 'multi-pose': {
           poses = await posenetModel.estimateMultiplePoses(
-          video, 
-          imageScaleFactor, 
-          flipHorizontal, 
-          outputStride, 
-          maxPoseDetections, 
-          minPartConfidence, 
-          nmsRadius
+            video,
+            imageScaleFactor,
+            flipHorizontal,
+            outputStride,
+            maxPoseDetections,
+            minPartConfidence,
+            nmsRadius
           )
           break
         }
         case 'single-pose': {
           const pose = await posenetModel.estimateSinglePose(
-          video, 
-          imageScaleFactor, 
-          flipHorizontal, 
-          outputStride
+            video,
+            imageScaleFactor,
+            flipHorizontal,
+            outputStride
           )
           poses.push(pose)
           break
@@ -168,19 +177,191 @@ class PoseNet extends Component {
             )
           }
           if (showSkeleton) {
-            drawSkeleton(
-              keypoints,
-              minPartConfidence,
-              skeletonColor,
-              skeletonLineWidth,
-              canvasContext
-            )
+            // drawSkeleton(
+            //   keypoints,
+            //   minPartConfidence,
+            //   skeletonColor,
+            //   skeletonLineWidth,
+            //   canvasContext
+            // )
+            // drawStretch(
+            //   this.state.stretchData[2],
+            //   this.state.stretchData[3],
+            //   this.state.stretchData[4],
+            //   skeletonColor,
+            //   skeletonLineWidth,
+            //   canvasContext
+            // )
           }
         }
       })
+
+      this.state.stretchData = calculateStretch(poses)
+
+      if (this.state.stretchData[0][0]) {
+        drawStretch(
+          this.state.stretchData[2][0],
+          this.state.stretchData[2][1],
+          this.state.stretchData[2][2],
+          skeletonColor,
+          skeletonLineWidth,
+          canvasContext
+        )
+
+        drawStretch(
+          this.state.stretchData[2][1],
+          this.state.stretchData[2][2],
+          this.state.stretchData[2][3],
+          skeletonColor,
+          skeletonLineWidth,
+          canvasContext
+        )
+      }
+
+      if (this.state.stretchData[0][1]) {
+        drawStretch(
+          this.state.stretchData[3][0],
+          this.state.stretchData[3][1],
+          this.state.stretchData[3][2],
+          skeletonColor,
+          skeletonLineWidth,
+          canvasContext
+        )
+
+        drawStretch(
+          this.state.stretchData[3][1],
+          this.state.stretchData[3][2],
+          this.state.stretchData[3][3],
+          skeletonColor,
+          skeletonLineWidth,
+          canvasContext
+        )
+      }
+
+      // if (this.state.stretchData[0]) {
+      //   drawStretch(
+      //     this.state.stretchData[2],
+      //     this.state.stretchData[3],
+      //     this.state.stretchData[4],
+      //     skeletonColor,
+      //     skeletonLineWidth,
+      //     canvasContext
+      //   )
+      // }
+      //console.log(this.state.stretchData[0], this.state.stretchData[1])
+      this.forceUpdate()
       requestAnimationFrame(findPoseDetectionFrame)
     }
     findPoseDetectionFrame()
+  }
+
+  drawStretchData() {
+    //console.log(this.state.stretchData)
+    if (this.state.stretchData[0][0]) {
+      let stretchResultString = ''
+      let angleA = this.state.stretchData[1][0]
+      let angleB = this.state.stretchData[1][1]
+
+      let resA
+      let resB
+      let res
+
+      if (angleA < 45) resA = 0
+      if (angleA >= 45 && angleA < 90) resA = 1
+      if (angleA >= 90 && angleA < 135) resA = 2
+      if (angleA >= 135) resA = 3
+
+      if (angleB < 45) resB = 4
+      if (angleB >= 45 && angleB < 90) resB = 3
+      if (angleB >= 90 && angleB < 135) resB = 2
+      if (angleB >= 135) resB = 1
+
+      if (resA > resB) {
+        res = resB
+      } else {
+        res = resA
+      }
+
+      switch (res) {
+        case 0: {
+          stretchResultString = 'bad'
+          break
+        }
+        case 1: {
+          stretchResultString = 'middle'
+          break
+        }
+        case 2: {
+          stretchResultString = 'good'
+          break
+        }
+        case 3: {
+          stretchResultString = 'excellent'
+          break
+        }
+      }
+      // if (this.state.stretchData[1] < 45) stretchResultString = 'плохая'
+      // if ((this.state.stretchData[1] > 45) && (this.state.stretchData[1] < 90)) stretchResultString = 'средняя'
+      // if (this.state.stretchData[1] > 90) stretchResultString = 'хорошая'
+      // let result = stretchResultString
+      // console.log("Растяжка ", stretchResultString)
+      // return result
+
+      return stretchResultString
+    }
+
+    if (this.state.stretchData[0][1]) {
+      let stretchResultString = ''
+      let angleA = this.state.stretchData[1][2]
+      let angleB = this.state.stretchData[1][3]
+
+      let resA
+      let resB
+      let res
+
+      if (angleA < 45) resA = 0
+      if (angleA >= 45 && angleA < 90) resA = 1
+      if (angleA >= 90 && angleA < 135) resA = 2
+      if (angleA >= 135) resA = 3
+
+      if (angleB < 45) resB = 3
+      if (angleB >= 45 && angleB < 90) resB = 2
+      if (angleB >= 90 && angleB < 135) resB = 1
+      if (angleB >= 135) resB = 0
+
+      if (resA > resB) {
+        res = resB
+      } else {
+        res = resA
+      }
+
+      switch (res) {
+        case 0: {
+          stretchResultString = 'bad'
+          break
+        }
+        case 1: {
+          stretchResultString = 'middle'
+          break
+        }
+        case 2: {
+          stretchResultString = 'good'
+          break
+        }
+        case 3: {
+          stretchResultString = 'excellent'
+          break
+        }
+      }
+      // if (this.state.stretchData[1] < 45) stretchResultString = 'плохая'
+      // if ((this.state.stretchData[1] > 45) && (this.state.stretchData[1] < 90)) stretchResultString = 'средняя'
+      // if (this.state.stretchData[1] > 90) stretchResultString = 'хорошая'
+      // let result = stretchResultString
+      // console.log("Растяжка ", stretchResultString)
+      // return result
+
+      return stretchResultString
+    }
   }
 
   render() {
@@ -189,6 +370,7 @@ class PoseNet extends Component {
         <div>
           <video id="videoNoShow" playsInline ref={this.getVideo} />
           <canvas className="webcam" ref={this.getCanvas} />
+          <div> Stretching {this.drawStretchData()}</div>
         </div>
       </div>
     )

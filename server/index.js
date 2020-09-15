@@ -2,8 +2,19 @@ const path = require('path')
 const express = require('express')
 const morgan = require('morgan')
 const compression = require('compression')
-const PORT = process.env.PORT || 1337
+//const PORT = process.env.PORT || 1337
 const app = express()
+
+const http = require('http')
+const https = require('https')
+const fs = require('fs')
+
+const options = {
+  key: fs.readFileSync('key.pem'),
+  cert: fs.readFileSync('cert.pem')
+}
+
+
 
 module.exports = app
 
@@ -48,11 +59,16 @@ const createApp = () => {
     console.error(err.stack)
     res.status(err.status || 500).send(err.message || 'Internal server error.')
   })
+  var httpServer = http.createServer(app)
+  var httpsServer = https.createServer(options, app)
+  httpServer.listen(8080)
+  httpsServer.listen(8123)
+
 }
 
 const startListening = () => {
   // start listening (and create a 'server' object representing our server)
-  app.listen(PORT, () => console.log(`I'm listening on port ${PORT}!`))
+  //app.listen(PORT, () => console.log(`I'm listening on port ${PORT}!`))
 }
 
 async function bootApp() {
