@@ -112,6 +112,24 @@ export function drawStretch(
   )
 }
 
+export function drawStretchWithTwoPoints(
+  keypointA,
+  keypointB,
+  color,
+  lineWidth,
+  canvasContext,
+  scale = 1
+) {
+  drawSegment(
+    toTuple(keypointA.position),
+    toTuple(keypointB.position),
+    color,
+    lineWidth,
+    scale,
+    canvasContext
+  )
+}
+
 function find_angle(A, B, C) {
   var AB = Math.sqrt(Math.pow(B.x - A.x, 2) + Math.pow(B.y - A.y, 2))
   var BC = Math.sqrt(Math.pow(B.x - C.x, 2) + Math.pow(B.y - C.y, 2))
@@ -204,4 +222,48 @@ export function calculateStretch(poses) {
   let positionsRight = [rightShoulder, rightHip, rightKnee, rightAnkle]
 
   return [status, angles, positionsLeft, positionsRight]
+}
+
+
+
+export function calculateTwineStretch(poses) {
+  let pose = poses[0]
+
+  let TwineStatus = false;
+  let rightHip = pose['keypoints'][12]
+  let leftHip = pose['keypoints'][11]
+  let rightKnee = pose['keypoints'][14]
+  let leftKnee = pose['keypoints'][13]
+
+  let leftAngleHip = 0
+  let rightAngleHip = 0
+
+  if (
+    rightHip.score > 0.7 &&
+    leftHip.score > 0.7 &&
+    rightKnee.score > 0.7 &&
+    leftKnee.score > 0.7
+  )
+  {
+    TwineStatus = true;
+    rightAngleHip = find_angle(
+      leftHip.position,
+      rightHip.position,
+      rightKnee.position
+    )
+    leftAngleHip = find_angle(
+      rightHip.position,
+      leftHip.position,
+      leftKnee.position
+    )
+  }
+  else
+  {TwineStatus = false}
+
+  
+  let status = [TwineStatus]
+  let angles = [leftAngleHip, rightAngleHip]
+  let positions = [rightHip, leftHip, rightKnee, leftKnee]
+
+  return [status, angles, positions]
 }
