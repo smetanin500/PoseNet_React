@@ -1,5 +1,7 @@
 import React, { Component } from "react";
 import { BrowserRouter as Router } from 'react-router-dom';
+//import Loading from "./components";
+import LogOut from "./components/LogOut";
 import "./index.css";
 import {
   MDBNavbar,
@@ -23,7 +25,10 @@ import {
 import Routes from './Routes';
 import logo from './assets/logo.png'
 
+
 class App extends Component {
+  
+
 
   state = {
     collapseID: ''
@@ -43,42 +48,20 @@ class App extends Component {
   };
 
   render() {
-    
-
-    // const { auth } = require('express-openid-connect');
-
-    // const config = {
-    //   authRequired: false,
-    //   auth0Logout: true,
-    //   secret: 'a long, randomly-generated string stored in env',
-    //   baseURL: 'http://localhost:3000',
-    //   clientID: 'Hl3BOkO0oviuOkLCzyyXt31KzltkmNYc',
-    //   issuerBaseURL: 'https://dev-nc77-ucl.eu.auth0.com'
-    // };
-
-    // // auth router attaches /login, /logout, and /callback routes to the baseURL
-    // app.use(auth(config));
-
-    // // req.isAuthenticated is provided from the auth router
-    // app.get('/', (req, res) => {
-    //   res.send(req.oidc.isAuthenticated() ? 'Logged in' : 'Logged out');
-    // });
-
-    const overlay = (
-      <div
-        id='sidenav-overlay'
-        style={{ backgroundColor: 'transparent' }}
-        onClick={this.toggleCollapse('mainNavbarCollapse')}
-      />
-    );
 
     const { collapseID } = this.state;
+
+    // const { isLoading } = useAuth0();
+
+    // if (isLoading) {
+    //   return <Loading />;
+    // }
 
     return (
       <Router>
     	<div className="flyout">
       <MDBNavbar color='indigo' dark expand='md' fixed='top' scrolling>
-            <MDBNavbarBrand href='/' className='py-0 font-weight-bold'>
+            <MDBNavbarBrand  className='py-0 font-weight-bold'>
               <img alt='MDB React Logo' className='img-fluid' src={logo} />
             </MDBNavbarBrand>
             <MDBNavbarToggler
@@ -101,10 +84,11 @@ class App extends Component {
                       <MDBIcon icon="user" />
                     </MDBDropdownToggle>
                     <MDBDropdownMenu className="dropdown-default">
-                      <MDBDropdownItem href="#!">Выйти</MDBDropdownItem>
+                      <LogOut />
                     </MDBDropdownMenu>
                   </MDBDropdown>
                 </MDBNavItem>
+
 
               </MDBNavbarNav>
             </MDBCollapse>

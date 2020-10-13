@@ -10,10 +10,12 @@ import {
 } from 'mdbreact';
 import MenuLink from '../components/menuLink';
 
+
+
 const NavigationNavPage = () => {
   return (
     <>
-      <MDBEdgeHeader color='indigo darken-3' className='sectionPage' />
+      <MDBEdgeHeader color='indigo darken-3' className='sectionPage' />      
       <MDBAnimation type='zoomIn' duration='500ms'>
         <MDBContainer>
           <MDBRow>
@@ -31,7 +33,6 @@ const NavigationNavPage = () => {
                   <MenuLink to='/navigation/breadcrumb' title='Breadcrumb' />
                   <MenuLink to='/navigation/footer' title='Footer' />
                   <MenuLink to='/navigation/navs' title='Navs' />
-                  
                 </ul>
               </MDBJumbotron>
             </MDBCol>

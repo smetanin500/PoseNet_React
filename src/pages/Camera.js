@@ -10,6 +10,8 @@ import React, {Component} from 'react'
 import { MDBBtn, MDBRow, MDBCol, MDBEdgeHeader, MDBCardBody, MDBContainer} from "mdbreact"
 import * as posenet from '@tensorflow-models/posenet'
 
+import { useAuth0 } from "@auth0/auth0-react";
+
 
 
 class PoseNet extends Component {
@@ -266,7 +268,7 @@ class PoseNet extends Component {
         if (this.state.BackTilt)
         {
           if (this.canvas == '')
-            console.log("yes")
+            console.log()
         }
         
 
@@ -507,6 +509,8 @@ class PoseNet extends Component {
 
 
   render() {
+
+    
     return ( 
       <>  
       <MDBEdgeHeader color='indigo darken-3' className='sectionPage' />   
