@@ -6,7 +6,7 @@ import NavBar from './pages/NavBar';
 import FooterPage from './pages/FooterPage';
 
 
-// FREE
+
 import Camera from './pages/Camera.js'
 import LoginPage from './pages/LoginPage.js'
 

@@ -1,12 +1,14 @@
 import React, { Component } from 'react'
-import { MDBContainer, MDBRow, MDBCol, MDBCard, MDBCardBody, MDBInput, MDBBtn, MDBIcon, MDBModalFooter, MDBEdgeHeader } from 'mdbreact';
-import LogIn from "../components/LogIn";
+import { MDBContainer, MDBRow, MDBCol, MDBCard, MDBCardBody, MDBEdgeHeader } from 'mdbreact';
+import LoginButton from "../components/login-button";
+
 
 class LoginPage extends Component {
 
   constructor(props) {
     super(props);
     this.state = {
+      IsAuthenticatedUser: false
 
     };
   }
@@ -16,6 +18,8 @@ class LoginPage extends Component {
         [nr] : !this.state[nr]
     })
   };
+
+
 
 
 
@@ -31,11 +35,16 @@ class LoginPage extends Component {
               <MDBCardBody className="mx-4">
                 <div className="text-center">
                   <h3 className="dark-grey-text mb-5">
-                    <strong>Войти</strong>
+                    <strong>Приветствуем вас на сайте!</strong>
                   </h3>
+                  <h5 className="dark-grey-text mb-5">
+                    Для авторизации или регистрации нажмите кнопку Войти
+                  </h5>
                 </div>
                 <div className="text-center mb-3">
-                  <LogIn />
+                   {/* <LogIn />  */}
+                   <LoginButton />
+                  {/* <GetUser /> */}
                 </div>
               </MDBCardBody>
             </MDBCard>

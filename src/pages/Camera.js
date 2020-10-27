@@ -1,7 +1,7 @@
 import {
   drawKeyPoints,
-  drawSkeleton,
   calculateStretch,
+  calculateBackTiltStretch,
   calculateTwineStretch,
   drawStretch,
   drawStretchWithTwoPoints
@@ -10,7 +10,6 @@ import React, {Component} from 'react'
 import { MDBBtn, MDBRow, MDBCol, MDBEdgeHeader, MDBCardBody, MDBContainer} from "mdbreact"
 import * as posenet from '@tensorflow-models/posenet'
 
-import { useAuth0 } from "@auth0/auth0-react";
 
 
 
@@ -39,6 +38,7 @@ class PoseNet extends Component {
 
     this.state = {
       stretchData: [[false, false]],
+      stretchBackTiltData: [[false, false]],
       stretchTwineData: [[false]],
       Twine: false,
       ForwardTilt: false,
@@ -267,8 +267,42 @@ class PoseNet extends Component {
 
         if (this.state.BackTilt)
         {
-          if (this.canvas == '')
-            console.log()
+          this.state.stretchBackTiltData = calculateBackTiltStretch(poses)
+
+          if (this.state.stretchBackTiltData[0][0]) {
+            drawStretch(
+              this.state.stretchBackTiltData[2][0],
+              this.state.stretchBackTiltData[2][1],
+              this.state.stretchBackTiltData[2][2],
+              skeletonColor,
+              skeletonLineWidth,
+              canvasContext
+            )
+          }
+
+          if (this.state.stretchBackTiltData[0][1]) {
+            drawStretch(
+              this.state.stretchBackTiltData[3][0],
+              this.state.stretchBackTiltData[3][1],
+              this.state.stretchBackTiltData[3][2],
+              skeletonColor,
+              skeletonLineWidth,
+              canvasContext
+            )
+          }
+
+          canvasContext.font = '48px serif'
+          canvasContext.fillText('Время = ' + this.state.timeinsec, 50, 100)
+          canvasContext.fillText('Растяжка = ' + this.drawBackTiltStretchData(), 50, 200)
+
+          if (this.state.stretchBackTiltData[0][0])
+            {
+              canvasContext.fillText(this.state.stretchBackTiltData[1][0], 50, 300)
+            } 
+          if (this.state.stretchBackTiltData[0][1])
+            {
+              canvasContext.fillText(this.state.stretchBackTiltData[1][1], 50, 400)
+            } 
         }
         
 
@@ -368,6 +402,74 @@ class PoseNet extends Component {
           break
         }
       }
+      return stretchResultString
+    }
+  }
+
+  drawBackTiltStretchData() {
+    if (this.state.stretchBackTiltData[0][0]) {
+      let stretchResultString = ''
+      let leftAngleHip = this.state.stretchBackTiltData[1][0]
+
+      let res
+
+      if (leftAngleHip > 135) res = 0
+      if ((leftAngleHip <= 135) || (leftAngleHip >= 120)) res = 1
+      if ((leftAngleHip <= 120) || (leftAngleHip >= 85)) res = 2
+      if (leftAngleHip <= 85) res = 3
+
+      switch (res) {
+        case 0: {
+          stretchResultString = 'bad'
+          break
+        }
+        case 1: {
+          stretchResultString = 'middle'
+          break
+        }
+        case 2: {
+          stretchResultString = 'good'
+          break
+        }
+        case 3: {
+          stretchResultString = 'excellent'
+          break
+        }
+      }
+
+      return stretchResultString
+    }
+
+    if (this.state.stretchData[0][1]) {
+      let stretchResultString = ''
+      let leftAngleHip = this.state.stretchData[1][0]
+
+      let res
+
+      if (leftAngleHip > 135) res = 0
+      if ((leftAngleHip <= 135) || (leftAngleHip >= 120)) res = 1
+      if ((leftAngleHip <= 120) || (leftAngleHip >= 85)) res = 2
+      if (leftAngleHip <= 85) res = 3
+
+      switch (res) {
+        case 0: {
+          stretchResultString = 'bad'
+          break
+        }
+        case 1: {
+          stretchResultString = 'middle'
+          break
+        }
+        case 2: {
+          stretchResultString = 'good'
+          break
+        }
+        case 3: {
+          stretchResultString = 'excellent'
+          break
+        }
+      }
+
       return stretchResultString
     }
   }

@@ -1,7 +1,7 @@
 import React, { Component } from "react";
 import { BrowserRouter as Router } from 'react-router-dom';
 //import Loading from "./components";
-import LogOut from "./components/LogOut";
+import LogoutButton from "./components/logout-button";
 import "./index.css";
 import {
   MDBNavbar,
@@ -16,11 +16,7 @@ import {
   MDBDropdown,
   MDBDropdownToggle, 
   MDBDropdownMenu, 
-  MDBDropdownItem,
-  MDBContainer,
-  MDBCardBody,
-  MDBTable,
-  MDBTableBody
+  MDBContainer
 } from 'mdbreact';
 import Routes from './Routes';
 import logo from './assets/logo.png'
@@ -31,7 +27,8 @@ class App extends Component {
 
 
   state = {
-    collapseID: ''
+    collapseID: '',
+    currentPath : window.location.href
   };
 
   
@@ -56,6 +53,7 @@ class App extends Component {
     // if (isLoading) {
     //   return <Loading />;
     // }
+    //const currentPath = window.location.href
 
     return (
       <Router>
@@ -67,6 +65,8 @@ class App extends Component {
             <MDBNavbarToggler
               onClick={this.toggleCollapse('mainNavbarCollapse')}
             />
+
+            {((this.state.currentPath.split('//')[1]).split('/')[1]) !== "" && 
             <MDBCollapse id='mainNavbarCollapse' isOpen={collapseID} navbar>
               <MDBNavbarNav right>
                 <MDBNavItem>
@@ -84,14 +84,12 @@ class App extends Component {
                       <MDBIcon icon="user" />
                     </MDBDropdownToggle>
                     <MDBDropdownMenu className="dropdown-default">
-                      <LogOut />
+                      <LogoutButton />
                     </MDBDropdownMenu>
                   </MDBDropdown>
                 </MDBNavItem>
-
-
               </MDBNavbarNav>
-            </MDBCollapse>
+            </MDBCollapse>}
           </MDBNavbar>
 
 
@@ -100,17 +98,7 @@ class App extends Component {
           </main>
 
           <MDBContainer>
-            <MDBCardBody>
-              <MDBTable>
-                <MDBTableBody>
-                  <tr>
-                  <span className={'fas fa-circle white-text fa-4x'}></span>
-                  </tr>
-                  <tr>
-                  </tr>
-                </MDBTableBody>
-              </MDBTable>
-            </MDBCardBody>
+                    <span className={'fas fa-circle white-text fa-4x'}></span>
           </MDBContainer>  
 
           <MDBFooter color='indigo' className="footerPage">

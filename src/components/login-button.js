@@ -10,16 +10,10 @@ const LoginButton = () => {
       gradient="blue"
       rounded
       className="btn-block z-depth-1a"
-      onClick={() => loginWithRedirect({redirectUri : "http://localhost:3000/camera"})}
+      onClick={() => loginWithRedirect({redirectUri : window.location.href + "camera"})}
     >
       Войти
     </MDBBtn>
-    // <button
-    //   className="btn btn-primary btn-block"
-    //   onClick={() => loginWithRedirect({redirectUri : "http://localhost:3000/camera"})}
-    // >
-    //   Войти
-    // </button>
   );
 };
 

@@ -239,10 +239,10 @@ export function calculateTwineStretch(poses) {
   let rightAngleHip = 0
 
   if (
-    rightHip.score > 0.7 &&
-    leftHip.score > 0.7 &&
-    rightKnee.score > 0.7 &&
-    leftKnee.score > 0.7
+    rightHip.score > 0.6 &&
+    leftHip.score > 0.6 &&
+    rightKnee.score > 0.6 &&
+    leftKnee.score > 0.6
   )
   {
     TwineStatus = true;
@@ -266,4 +266,59 @@ export function calculateTwineStretch(poses) {
   let positions = [rightHip, leftHip, rightKnee, leftKnee]
 
   return [status, angles, positions]
+}
+
+
+export function calculateBackTiltStretch(poses) {
+  let pose = poses[0]
+
+  let rightShoulder = pose['keypoints'][6]
+  let leftShoulder = pose['keypoints'][5]
+  let rightHip = pose['keypoints'][12]
+  let leftHip = pose['keypoints'][11]
+  let rightKnee = pose['keypoints'][14]
+  let leftKnee = pose['keypoints'][13]
+
+  let statusLeft = false
+  let statusRight = false
+
+  let leftAngleB = 0
+  let rightAngleB = 0
+
+  if (
+    rightShoulder.score > 0.5 &&
+    rightHip.score > 0.5 &&
+    rightKnee.score > 0.5 
+  ) {
+    statusRight = true
+
+    rightAngleB = find_angle(
+      rightShoulder.position,
+      rightHip.position,
+      rightKnee.position
+    )
+  } else if (
+    leftShoulder.score > 0.5 &&
+    leftHip.score > 0.5 &&
+    leftKnee.score > 0.5 
+  ) {
+    statusLeft = true
+
+    leftAngleB = find_angle(
+      leftShoulder.position,
+      leftHip.position,
+      leftKnee.position
+    )
+  } else {
+    statusLeft = false
+    statusRight = false
+  }
+
+
+  let status = [statusLeft, statusRight]
+  let angles = [ leftAngleB, rightAngleB]
+  let positionsLeft = [leftShoulder, leftHip, leftKnee]
+  let positionsRight = [rightShoulder, rightHip, rightKnee]
+
+  return [status, angles, positionsLeft, positionsRight]
 }
