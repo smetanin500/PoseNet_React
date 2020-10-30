@@ -5,10 +5,11 @@
   "// If You want to install mdbreact from our GitLab repository, please replace '4.27.0' with gitURL provided here ->": "git+https://oauth2:<YOUR-TOKEN-GOES-HERE>@git.mdbootstrap.com/mdb/react/re-pro.git",
   "dependencies": {
     "@auth0/auth0-react": "^1.1.0",
-    "@tensorflow-models/posenet": "^1.0.0",
-    "@tensorflow/tfjs": "^1.0.1",
+    "@tensorflow-models/posenet": "^2.2.1",
+    "@tensorflow/tfjs": "^2.0.0",
     "express": "^4.17.1",
     "express-openid-connect": "^2.0.0",
+    "html2canvas": "^1.0.0-rc.7",
     "mdbreact": "./mdbreact-4.27.0.tgz",
     "react": "^16.12.0",
     "react-dom": "^16.12.0",

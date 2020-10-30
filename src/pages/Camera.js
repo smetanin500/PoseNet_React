@@ -10,7 +10,7 @@ import React, {Component} from 'react'
 import { MDBBtn, MDBRow, MDBCol, MDBEdgeHeader, MDBCardBody, MDBContainer} from "mdbreact"
 import * as posenet from '@tensorflow-models/posenet'
 
-
+var intervalId = 0;
 
 
 class PoseNet extends Component {
@@ -44,7 +44,9 @@ class PoseNet extends Component {
       ForwardTilt: false,
       OnDoingExercise: false,
       BackTilt: false,
-      stopCalc: false,
+      stopVideo: false,
+      screenshot: null,
+      Repeat: false,
       timeinsec: 10
     }
   }
@@ -61,19 +63,12 @@ class PoseNet extends Component {
     this.setState({
       timeinsec: this.state.timeinsec - 1
     })
-    if (this.state.timeinsec === 0)
+    if (this.state.timeinsec === -1)
     {
-      this.setState({
-        stopCalc: true
-      })
+      this.setState({stopVideo : true})
+      clearInterval(intervalId);
+      intervalId = 0;
     }
-    else
-    {
-      this.setState({
-        stopCalc: false
-      })
-    }
-
   }
 
   async componentDidMount() {
@@ -95,18 +90,6 @@ class PoseNet extends Component {
       }, 200)
     }
     setTimeout(this.writeStrecthResult, 5000)
-    // TimeOut=setTimeout(() => {
-    //   console.log('stop')
-    //   this.setState({stopCalc: true})
-    // }, 10000)
-
-    // setInterval(() => {
-    //   console.log('stop')
-    //   this.setState({stopCalc: !this.state.stopCalc})
-    // }, 10000)
-
-    // this.timeinsec = setInterval(() => this.tick(), 1000)
-
     this.detectPose()
   }
 
@@ -174,81 +157,116 @@ class PoseNet extends Component {
 
     const findPoseDetectionFrame = async () => {
       let poses = []
-      if (!this.state.stopCalc) {
         switch (algorithm) {
           case 'multi-pose': {
-            poses = await posenetModel.estimateMultiplePoses(
-              video,
-              imageScaleFactor,
-              flipHorizontal,
-              outputStride,
-              maxPoseDetections,
-              minPartConfidence,
-              nmsRadius
-            )
+            // const net = await posenet.load();
+ 
+            // const poses = await net.estimateMultiplePoses(image, {
+            //   flipHorizontal: false,
+            //   maxDetections: 5,
+            //   scoreThreshold: 0.5,
+            //   nmsRadius: 20
+            // });
             break
           }
           case 'single-pose': {
             const pose = await posenetModel.estimateSinglePose(
               video,
-              imageScaleFactor,
+              {imageScaleFactor,
               flipHorizontal,
-              outputStride
+              outputStride}
             )
             poses.push(pose)
             break
           }
         }
+        if (!this.state.stopVideo)
+        {
+          canvasContext.clearRect(0, 0, videoWidth, videoHeight)
 
-        canvasContext.clearRect(0, 0, videoWidth, videoHeight)
+          if (showVideo) {
+            canvasContext.save()
+            canvasContext.scale(-1, 1)
+            canvasContext.translate(-videoWidth, 0)
+            canvasContext.drawImage(video, 0, 0, videoWidth, videoHeight)
+            canvasContext.restore()
+          }
 
-        if (showVideo) {
-          canvasContext.save()
-          canvasContext.scale(-1, 1)
-          canvasContext.translate(-videoWidth, 0)
-          canvasContext.drawImage(video, 0, 0, videoWidth, videoHeight)
-          canvasContext.restore()
-        }
+          poses.forEach(({score, keypoints}) => {
+            if (score >= minPoseConfidence) {
+              if (showPoints) {
+                drawKeyPoints(
+                  keypoints,
+                  minPartConfidence,
+                  skeletonColor,
+                  canvasContext
+                )
+              }
+            }
+          })
 
-        poses.forEach(({score, keypoints}) => {
-          if (score >= minPoseConfidence) {
-            if (showPoints) {
-              drawKeyPoints(
-                keypoints,
-                minPartConfidence,
+          if (this.state.Twine)
+          {
+
+            this.state.stretchTwineData = calculateTwineStretch(poses)
+
+            if (this.state.stretchTwineData[0])
+            {
+                drawStretchWithTwoPoints(
+                  this.state.stretchTwineData[2][0],
+                  this.state.stretchTwineData[2][2],
+                  skeletonColor,
+                  skeletonLineWidth,
+                  canvasContext
+                )
+        
+                drawStretchWithTwoPoints(
+                  this.state.stretchTwineData[2][1],
+                  this.state.stretchTwineData[2][0],
+                  skeletonColor,
+                  skeletonLineWidth,
+                  canvasContext
+                )
+        
+                drawStretchWithTwoPoints(
+                  this.state.stretchTwineData[2][3],
+                  this.state.stretchTwineData[2][1],
+                  skeletonColor,
+                  skeletonLineWidth,
+                  canvasContext
+                )
+              }
+
+              canvasContext.font = '48px serif'
+              canvasContext.fillText('Время = ' + this.state.timeinsec, 50, 100)
+              canvasContext.fillText('Растяжка = ' + this.drawTwineStretchData(), 50, 200)
+              if (this.state.stretchTwineData[0])
+              {
+                canvasContext.fillText(this.state.stretchTwineData[1][0], 50, 300)
+                canvasContext.fillText(this.state.stretchTwineData[1][1], 50, 400)
+              }            
+          }
+
+          if (this.state.BackTilt)
+          {
+            this.state.stretchBackTiltData = calculateBackTiltStretch(poses)
+
+            if (this.state.stretchBackTiltData[0][0]) {
+              drawStretch(
+                this.state.stretchBackTiltData[2][0],
+                this.state.stretchBackTiltData[2][1],
+                this.state.stretchBackTiltData[2][2],
                 skeletonColor,
+                skeletonLineWidth,
                 canvasContext
               )
             }
-          }
-        })
 
-        if (this.state.Twine)
-        {
-
-          this.state.stretchTwineData = calculateTwineStretch(poses)
-
-          if (this.state.stretchTwineData[0])
-          {
-              drawStretchWithTwoPoints(
-                this.state.stretchTwineData[2][0],
-                this.state.stretchTwineData[2][2],
-                skeletonColor,
-                skeletonLineWidth,
-                canvasContext
-              )
-      
-              drawStretchWithTwoPoints(
-                this.state.stretchTwineData[2][1],
-                this.state.stretchTwineData[2][0],
-                skeletonColor,
-                skeletonLineWidth,
-                canvasContext
-              )
-      
-              drawStretchWithTwoPoints(
-                this.state.stretchTwineData[2][3],
-                this.state.stretchTwineData[2][1],
+            if (this.state.stretchBackTiltData[0][1]) {
+              drawStretch(
+                this.state.stretchBackTiltData[3][0],
+                this.state.stretchBackTiltData[3][1],
+                this.state.stretchBackTiltData[3][2],
                 skeletonColor,
                 skeletonLineWidth,
                 canvasContext
@@ -257,108 +275,70 @@ class PoseNet extends Component {
 
             canvasContext.font = '48px serif'
             canvasContext.fillText('Время = ' + this.state.timeinsec, 50, 100)
-            canvasContext.fillText('Растяжка = ' + this.drawTwineStretchData(), 50, 200)
-            if (this.state.stretchTwineData[0])
-            {
-              canvasContext.fillText(this.state.stretchTwineData[1][0], 50, 300)
-              canvasContext.fillText(this.state.stretchTwineData[1][1], 50, 400)
-            }            
-        }
+            canvasContext.fillText('Растяжка = ' + this.drawBackTiltStretchData(), 50, 200)
 
-        if (this.state.BackTilt)
-        {
-          this.state.stretchBackTiltData = calculateBackTiltStretch(poses)
-
-          if (this.state.stretchBackTiltData[0][0]) {
-            drawStretch(
-              this.state.stretchBackTiltData[2][0],
-              this.state.stretchBackTiltData[2][1],
-              this.state.stretchBackTiltData[2][2],
-              skeletonColor,
-              skeletonLineWidth,
-              canvasContext
-            )
+            if (this.state.stretchBackTiltData[0][0])
+              {
+                canvasContext.fillText(this.state.stretchBackTiltData[1][0], 50, 300)
+              } 
+            if (this.state.stretchBackTiltData[0][1])
+              {
+                canvasContext.fillText(this.state.stretchBackTiltData[1][1], 50, 400)
+              } 
           }
+          
 
-          if (this.state.stretchBackTiltData[0][1]) {
-            drawStretch(
-              this.state.stretchBackTiltData[3][0],
-              this.state.stretchBackTiltData[3][1],
-              this.state.stretchBackTiltData[3][2],
-              skeletonColor,
-              skeletonLineWidth,
-              canvasContext
-            )
+          if (this.state.ForwardTilt)
+          {
+            this.state.stretchData = calculateStretch(poses)
+
+            if (this.state.stretchData[0][0]) {
+              drawStretch(
+                this.state.stretchData[2][0],
+                this.state.stretchData[2][1],
+                this.state.stretchData[2][2],
+                skeletonColor,
+                skeletonLineWidth,
+                canvasContext
+              )
+
+              drawStretch(
+                this.state.stretchData[2][1],
+                this.state.stretchData[2][2],
+                this.state.stretchData[2][3],
+                skeletonColor,
+                skeletonLineWidth,
+                canvasContext
+              )
+            }
+
+            if (this.state.stretchData[0][1]) {
+              drawStretch(
+                this.state.stretchData[3][0],
+                this.state.stretchData[3][1],
+                this.state.stretchData[3][2],
+                skeletonColor,
+                skeletonLineWidth,
+                canvasContext
+              )
+
+              drawStretch(
+                this.state.stretchData[3][1],
+                this.state.stretchData[3][2],
+                this.state.stretchData[3][3],
+                skeletonColor,
+                skeletonLineWidth,
+                canvasContext
+              )
+            }
+
+            canvasContext.font = '48px serif'
+            canvasContext.fillText('Время = ' + this.state.timeinsec, 50, 100)
+            canvasContext.fillText('Растяжка = ' + this.drawStretchData(), 50, 200)
           }
-
-          canvasContext.font = '48px serif'
-          canvasContext.fillText('Время = ' + this.state.timeinsec, 50, 100)
-          canvasContext.fillText('Растяжка = ' + this.drawBackTiltStretchData(), 50, 200)
-
-          if (this.state.stretchBackTiltData[0][0])
-            {
-              canvasContext.fillText(this.state.stretchBackTiltData[1][0], 50, 300)
-            } 
-          if (this.state.stretchBackTiltData[0][1])
-            {
-              canvasContext.fillText(this.state.stretchBackTiltData[1][1], 50, 400)
-            } 
-        }
-        
-
-
-
-        if (this.state.ForwardTilt)
-        {
-          this.state.stretchData = calculateStretch(poses)
-
-          if (this.state.stretchData[0][0]) {
-            drawStretch(
-              this.state.stretchData[2][0],
-              this.state.stretchData[2][1],
-              this.state.stretchData[2][2],
-              skeletonColor,
-              skeletonLineWidth,
-              canvasContext
-            )
-
-            drawStretch(
-              this.state.stretchData[2][1],
-              this.state.stretchData[2][2],
-              this.state.stretchData[2][3],
-              skeletonColor,
-              skeletonLineWidth,
-              canvasContext
-            )
-          }
-
-          if (this.state.stretchData[0][1]) {
-            drawStretch(
-              this.state.stretchData[3][0],
-              this.state.stretchData[3][1],
-              this.state.stretchData[3][2],
-              skeletonColor,
-              skeletonLineWidth,
-              canvasContext
-            )
-
-            drawStretch(
-              this.state.stretchData[3][1],
-              this.state.stretchData[3][2],
-              this.state.stretchData[3][3],
-              skeletonColor,
-              skeletonLineWidth,
-              canvasContext
-            )
-          }
-
-          canvasContext.font = '48px serif'
-          canvasContext.fillText('Время = ' + this.state.timeinsec, 50, 100)
-          canvasContext.fillText('Растяжка = ' + this.drawStretchData(), 50, 200)
         }
         this.forceUpdate()
         requestAnimationFrame(findPoseDetectionFrame)
-      }
     }
     findPoseDetectionFrame()
   }
@@ -408,14 +388,15 @@ class PoseNet extends Component {
 
   drawBackTiltStretchData() {
     if (this.state.stretchBackTiltData[0][0]) {
+      console.log("left")
       let stretchResultString = ''
       let leftAngleHip = this.state.stretchBackTiltData[1][0]
 
       let res
 
       if (leftAngleHip > 135) res = 0
-      if ((leftAngleHip <= 135) || (leftAngleHip >= 120)) res = 1
-      if ((leftAngleHip <= 120) || (leftAngleHip >= 85)) res = 2
+      if ((leftAngleHip <= 135) && (leftAngleHip >= 120)) res = 1
+      if ((leftAngleHip <= 120) && (leftAngleHip >= 85)) res = 2
       if (leftAngleHip <= 85) res = 3
 
       switch (res) {
@@ -440,16 +421,17 @@ class PoseNet extends Component {
       return stretchResultString
     }
 
-    if (this.state.stretchData[0][1]) {
+    if (this.state.stretchBackTiltData[0][1]) {
+      console.log("right")
       let stretchResultString = ''
-      let leftAngleHip = this.state.stretchData[1][0]
+      let rightAngleHip = this.state.stretchBackTiltData[1][1]
 
       let res
 
-      if (leftAngleHip > 135) res = 0
-      if ((leftAngleHip <= 135) || (leftAngleHip >= 120)) res = 1
-      if ((leftAngleHip <= 120) || (leftAngleHip >= 85)) res = 2
-      if (leftAngleHip <= 85) res = 3
+      if (rightAngleHip > 135) res = 0
+      if ((rightAngleHip <= 135) && (rightAngleHip >= 120)) res = 1
+      if ((rightAngleHip <= 120) && (rightAngleHip >= 85)) res = 2
+      if (rightAngleHip <= 85) res = 3
 
       switch (res) {
         case 0: {
@@ -573,17 +555,17 @@ class PoseNet extends Component {
   }
 
   ChangeState = nr => () => {
+    console.log(this.state.stopCalc)
     this.setState({
       ["timeinsec"] : 10
     })
     if (nr === "OnDoingExercise" && this.state[nr] === true)
     {
-      
-      //clearT(TimeOut);
-      //console.log(TimeOut)
-      // this.setState({
-      //   ["stopCalc"] : false
-      // })
+      clearInterval(intervalId);
+      intervalId = 0;
+      this.setState({
+          ["stopVideo"] : false
+      })
         this.setState({
           ["Twine"] : false
       })
@@ -600,12 +582,25 @@ class PoseNet extends Component {
 
     if (nr !== "OnDoingExercise")
     {
-      this.setState({
-        ["OnDoingExercise"] : true
-      })
-      this.setState({
-        [nr] : true
-      })
+      if (nr === "Repeat")
+      {
+        clearInterval(intervalId);
+        intervalId = 0;
+        this.setState({
+          ["stopVideo"] : false
+        })
+        intervalId = setInterval(() => this.tick(), 1000)
+      }
+      else
+      {
+        this.setState({
+          ["OnDoingExercise"] : true
+        })
+        this.setState({
+          [nr] : true
+        })
+        intervalId = setInterval(() => this.tick(), 1000)
+      }
     }
 };
 
@@ -628,7 +623,7 @@ class PoseNet extends Component {
                   </p>
                   <MDBRow className='d-flex flex-row justify-content-center row'>
                         <video id="videoNoShow" playsInline ref={this.getVideo}/>
-                        <canvas className="webcam" ref={this.getCanvas} />
+                        <canvas  className="webcam" ref={this.getCanvas} />
                   </MDBRow>
                   <MDBRow center>
                         {this.state.OnDoingExercise === false &&<MDBRow center>
@@ -644,7 +639,7 @@ class PoseNet extends Component {
                       </MDBRow>}
                       {this.state.OnDoingExercise &&<MDBRow center>
                         <MDBCol size="3"> 
-                          <MDBBtn color="red" onClick = {this.ChangeState("Twine")}>Повторить</MDBBtn> 
+                          <MDBBtn color="red" onClick = {this.ChangeState("Repeat")}>Повторить</MDBBtn> 
                         </MDBCol>
                         <MDBCol size="2"> 
                           
