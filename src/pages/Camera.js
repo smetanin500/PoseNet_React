@@ -9,14 +9,26 @@ import {
 import React, {Component} from 'react'
 import { MDBBtn, MDBRow, MDBCol, MDBEdgeHeader, MDBCardBody, MDBContainer} from "mdbreact"
 import * as posenet from '@tensorflow-models/posenet'
+const isMobile = /Mobile|webOS|BlackBerry|IEMobile|MeeGo|mini|Fennec|Windows Phone|Android|iP(ad|od|hone)/i.test(navigator.userAgent);
 
 var intervalId = 0;
-
+var Width =0;
+var Height =0;
+if (isMobile)
+{
+  Width = window.screen.width;
+  Height = window.screen.height-130;
+}
+else
+{
+  Width = 900;
+  Height = 700;
+}
 
 class PoseNet extends Component {
   static defaultProps = {
-    videoWidth: 900,
-    videoHeight: 700,
+    videoWidth: Width,
+    videoHeight: Height,
     flipHorizontal: true,
     algorithm: 'single-pose',
     showVideo: true,
@@ -142,8 +154,6 @@ class PoseNet extends Component {
       outputStride,
       minPoseConfidence,
       minPartConfidence,
-      maxPoseDetections,
-      nmsRadius,
       videoWidth,
       videoHeight,
       showVideo,
@@ -158,17 +168,17 @@ class PoseNet extends Component {
     const findPoseDetectionFrame = async () => {
       let poses = []
         switch (algorithm) {
-          case 'multi-pose': {
-            // const net = await posenet.load();
+          // case 'multi-pose': {
+          //   // const net = await posenet.load();
  
-            // const poses = await net.estimateMultiplePoses(image, {
-            //   flipHorizontal: false,
-            //   maxDetections: 5,
-            //   scoreThreshold: 0.5,
-            //   nmsRadius: 20
-            // });
-            break
-          }
+          //   // const poses = await net.estimateMultiplePoses(image, {
+          //   //   flipHorizontal: false,
+          //   //   maxDetections: 5,
+          //   //   scoreThreshold: 0.5,
+          //   //   nmsRadius: 20
+          //   // });
+          //   break
+          // }
           case 'single-pose': {
             const pose = await posenetModel.estimateSinglePose(
               video,
@@ -179,6 +189,8 @@ class PoseNet extends Component {
             poses.push(pose)
             break
           }
+          default:
+            break;
         }
         if (!this.state.stopVideo)
         {
@@ -381,6 +393,8 @@ class PoseNet extends Component {
           stretchResultString = 'excellent'
           break
         }
+        default:
+            break;
       }
       return stretchResultString
     }
@@ -416,6 +430,8 @@ class PoseNet extends Component {
           stretchResultString = 'excellent'
           break
         }
+        default:
+            break;
       }
 
       return stretchResultString
@@ -450,6 +466,8 @@ class PoseNet extends Component {
           stretchResultString = 'excellent'
           break
         }
+        default:
+            break;
       }
 
       return stretchResultString
@@ -501,6 +519,8 @@ class PoseNet extends Component {
           stretchResultString = 'excellent'
           break
         }
+        default:
+            break;
       }
 
       return stretchResultString
@@ -548,6 +568,8 @@ class PoseNet extends Component {
           stretchResultString = 'excellent'
           break
         }
+        default:
+            break;
       }
 
       return stretchResultString
@@ -557,23 +579,23 @@ class PoseNet extends Component {
   ChangeState = nr => () => {
     console.log(this.state.stopCalc)
     this.setState({
-      ["timeinsec"] : 10
+      "timeinsec" : 10
     })
     if (nr === "OnDoingExercise" && this.state[nr] === true)
     {
       clearInterval(intervalId);
       intervalId = 0;
       this.setState({
-          ["stopVideo"] : false
+          "stopVideo" : false
       })
         this.setState({
-          ["Twine"] : false
+          "Twine" : false
       })
         this.setState({
-          ["ForwardTilt"] : false
+          "ForwardTilt" : false
       })
         this.setState({
-          ["BackTilt"] : false
+          "BackTilt" : false
       })
       this.setState({
         [nr] : false
@@ -587,14 +609,14 @@ class PoseNet extends Component {
         clearInterval(intervalId);
         intervalId = 0;
         this.setState({
-          ["stopVideo"] : false
+          "stopVideo" : false
         })
         intervalId = setInterval(() => this.tick(), 1000)
       }
       else
       {
         this.setState({
-          ["OnDoingExercise"] : true
+          "OnDoingExercise" : true
         })
         this.setState({
           [nr] : true
@@ -627,7 +649,12 @@ class PoseNet extends Component {
                   </MDBRow>
                   <MDBRow center>
                         {this.state.OnDoingExercise === false &&<MDBRow center>
-                        <MDBCol size="3" className='text-center'> 
+                        {isMobile && <MDBRow center> 
+                          <MDBBtn size='sm' color='indigo' onClick = {this.ChangeState("ForwardTilt")}>Складка</MDBBtn>            
+                          <MDBBtn size='sm' color='indigo' onClick = {this.ChangeState("Twine")}>Разножка</MDBBtn>                   
+                          <MDBBtn size='sm' color='indigo' onClick = {this.ChangeState("BackTilt")}>Наклон назад</MDBBtn> 
+                        </MDBRow>}
+                        {!isMobile && <MDBRow center><MDBCol size="3" className='text-center'> 
                           <MDBBtn color='indigo' onClick = {this.ChangeState("ForwardTilt")}>Складка</MDBBtn> 
                         </MDBCol>
                         <MDBCol size="3" className='text-center'> 
@@ -635,10 +662,14 @@ class PoseNet extends Component {
                         </MDBCol>
                         <MDBCol size="5" className='text-center'> 
                           <MDBBtn color='indigo' onClick = {this.ChangeState("BackTilt")}>Наклон назад</MDBBtn> 
-                        </MDBCol>
-                      </MDBRow>}
+                        </MDBCol></MDBRow>}
+                        </MDBRow>}
                       {this.state.OnDoingExercise &&<MDBRow center>
-                        <MDBCol size="3"> 
+                        {isMobile && <MDBRow center> 
+                          <MDBBtn size='sm' color="red" onClick = {this.ChangeState("Repeat")}>Повторить</MDBBtn>            
+                          <MDBBtn size='sm' color='indigo' onClick = {this.ChangeState("OnDoingExercise")}>Закончить упражнение</MDBBtn>                   
+                        </MDBRow>}
+                        {!isMobile && <MDBRow center><MDBCol size="3"> 
                           <MDBBtn color="red" onClick = {this.ChangeState("Repeat")}>Повторить</MDBBtn> 
                         </MDBCol>
                         <MDBCol size="2"> 
@@ -646,7 +677,7 @@ class PoseNet extends Component {
                         </MDBCol>
                         <MDBCol size="7"> 
                           <MDBBtn color='indigo' onClick = {this.ChangeState("OnDoingExercise")}>Закончить упражнение</MDBBtn> 
-                        </MDBCol>
+                        </MDBCol></MDBRow>}
                       </MDBRow>}
                   </MDBRow>
                 </MDBCardBody>

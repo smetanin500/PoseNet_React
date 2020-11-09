@@ -1,8 +1,9 @@
-import React, { Component } from "react";
+import React, { Component} from "react";
 import { BrowserRouter as Router } from 'react-router-dom';
 //import Loading from "./components";
 import LogoutButton from "./components/logout-button";
 import "./index.css";
+import logo from './assets/logo.png'
 import {
   MDBNavbar,
   MDBNavbarBrand,
@@ -18,8 +19,9 @@ import {
   MDBDropdownMenu, 
   MDBContainer
 } from 'mdbreact';
+//const Routes = lazy(() => import ('./Routes'))
 import Routes from './Routes';
-import logo from './assets/logo.png'
+const isMobile = /Mobile|webOS|BlackBerry|IEMobile|MeeGo|mini|Fennec|Windows Phone|Android|iP(ad|od|hone)/i.test(navigator.userAgent);
 
 
 class App extends Component {
@@ -58,9 +60,10 @@ class App extends Component {
     return (
       <Router>
     	<div className="flyout">
-      <MDBNavbar color='indigo' dark expand='md' fixed='top' scrolling>
+
+          {!isMobile && <MDBNavbar color='indigo' dark expand='md' fixed='top' scrolling>
             <MDBNavbarBrand  className='py-0 font-weight-bold'>
-              <img alt='MDB React Logo' className='img-fluid' src={logo} />
+              <img alt='MDB React Logo' className='img-fluid' src={logo} width = '142' height = '92'/>
             </MDBNavbarBrand>
             <MDBNavbarToggler
               onClick={this.toggleCollapse('mainNavbarCollapse')}
@@ -90,12 +93,16 @@ class App extends Component {
                 </MDBNavItem>
               </MDBNavbarNav>
             </MDBCollapse>}
-          </MDBNavbar>
+          </MDBNavbar>}
 
 
-          <main style={{ marginTop: '4rem' }}>
+          {isMobile && <main>
             <Routes />
-          </main>
+          </main>}
+
+          {!isMobile &&<main style={{ marginTop: '4rem' }}>
+            <Routes />
+          </main>}
 
           <MDBContainer>
                     <span className={'fas fa-circle white-text fa-4x'}></span>
@@ -104,7 +111,7 @@ class App extends Component {
           <MDBFooter color='indigo' className="footerPage">
             <p className='footer-copyright mb-0 py-3 text-center'>
               &copy; {new Date().getFullYear()} Copyright:
-              <a > ООО ИРЗ </a>
+              <a href="URL"> ООО ИРЗ </a>
             </p>
           </MDBFooter>     
         </div>

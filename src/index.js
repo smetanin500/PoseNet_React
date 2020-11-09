@@ -8,7 +8,8 @@ import App from "./App";
 import { BrowserRouter as Router } from "react-router-dom";
 import Auth0ProviderWithHistory from "./auth/auth0-provider-with-history";
 
-import registerServiceWorker from './registerServiceWorker';
+//import registerServiceWorker from './registerServiceWorker';
+import * as serviceWorker from './serviceWorker';
 
 ReactDOM.render(
     <Router>
@@ -19,4 +20,4 @@ ReactDOM.render(
     document.getElementById("root")
   );
 
-registerServiceWorker();
+serviceWorker.register();
