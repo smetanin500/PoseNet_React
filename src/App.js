@@ -19,7 +19,6 @@ import {
   MDBDropdownMenu, 
   MDBContainer
 } from 'mdbreact';
-//const Routes = lazy(() => import ('./Routes'))
 import Routes from './Routes';
 const isMobile = /Mobile|webOS|BlackBerry|IEMobile|MeeGo|mini|Fennec|Windows Phone|Android|iP(ad|od|hone)/i.test(navigator.userAgent);
 
@@ -32,6 +31,31 @@ class App extends Component {
     collapseID: '',
     currentPath : window.location.href
   };
+
+
+  TwoFingersTouchAndScroll(e) {
+      if(e.scale !== 1) {
+        e.preventDefault();
+      }
+      if(e.scrollTop !== 1) {
+        e.preventDefault();
+      }
+      // var node = e.target;
+      // const bottom = node.scrollHeight - node.scrollTop === node.clientHeight;
+      //   if (bottom) {
+      //     e.preventDefault();
+      //   }
+  }
+
+  DoubleTap(e) {
+      e.preventDefault();
+      e.target.click();
+}
+
+  componentDidMount() {
+    window.document.addEventListener("touchmove", this.TwoFingersTouchAndScroll, {passive: false})
+    window.document.addEventListener("touchend", this.DoubleTap, {passive: false})
+  }
 
   
 
@@ -50,18 +74,11 @@ class App extends Component {
 
     const { collapseID } = this.state;
 
-    // const { isLoading } = useAuth0();
-
-    // if (isLoading) {
-    //   return <Loading />;
-    // }
-    //const currentPath = window.location.href
 
     return (
       <Router>
-    	<div className="flyout">
-
-          {!isMobile && <MDBNavbar color='indigo' dark expand='md' fixed='top' scrolling>
+    	  {!isMobile &&<div className="flyout" >
+          <MDBNavbar color='indigo' dark expand='md' fixed='top' scrolling>
             <MDBNavbarBrand  className='py-0 font-weight-bold'>
               <img alt='MDB React Logo' className='img-fluid' src={logo} width = '142' height = '92'/>
             </MDBNavbarBrand>
@@ -93,16 +110,11 @@ class App extends Component {
                 </MDBNavItem>
               </MDBNavbarNav>
             </MDBCollapse>}
-          </MDBNavbar>}
+          </MDBNavbar>
 
-
-          {isMobile && <main>
+          <main style={{ marginTop: '4rem' }}>
             <Routes />
-          </main>}
-
-          {!isMobile &&<main style={{ marginTop: '4rem' }}>
-            <Routes />
-          </main>}
+          </main>
 
           <MDBContainer>
                     <span className={'fas fa-circle white-text fa-4x'}></span>
@@ -114,7 +126,29 @@ class App extends Component {
               <a href="URL"> ООО ИРЗ </a>
             </p>
           </MDBFooter>     
-        </div>
+        </div>}
+
+
+
+
+
+
+        {isMobile && <div className="flyout">         
+          <main>
+            <Routes />
+          </main>
+
+          <MDBContainer>
+                    <span className={'fas fa-circle white-text fa-4x'}></span>
+          </MDBContainer>  
+
+          <MDBFooter color='indigo' className="footerPage">
+            <p className='footer-copyright mb-0 py-3 text-center'>
+              &copy; {new Date().getFullYear()} Copyright:
+              <a href="URL"> ООО ИРЗ </a>
+            </p>
+          </MDBFooter>     
+        </div>}
       </Router>
     );
   }

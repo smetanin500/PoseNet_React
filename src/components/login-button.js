@@ -11,6 +11,7 @@ const LoginButton = () => {
       rounded
       className="btn-block z-depth-1a"
       onClick={() => loginWithRedirect({redirectUri : window.location.href + "camera"})}
+      //onClick = {() => window.location.assign(window.location.href + "camera")}
     >
       Войти
     </MDBBtn>

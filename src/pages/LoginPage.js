@@ -3,6 +3,7 @@ import { MDBContainer, MDBRow, MDBCol, MDBCard, MDBCardBody, MDBEdgeHeader } fro
 import LoginButton from "../components/login-button";
 
 
+
 class LoginPage extends Component {
 
   constructor(props) {
@@ -11,6 +12,7 @@ class LoginPage extends Component {
       IsAuthenticatedUser: false
 
     };
+    
   }
 
   ChangeState = nr => () => {
@@ -18,11 +20,7 @@ class LoginPage extends Component {
         [nr] : !this.state[nr]
     })
   };
-
-
-
-
-
+  
   render () {
 
     return (

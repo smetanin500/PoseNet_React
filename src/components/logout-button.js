@@ -6,10 +6,15 @@ import {MDBDropdownItem} from 'mdbreact';
 const LogoutButton = () => {
   const { logout } = useAuth0();
   return (
-    <MDBDropdownItem onClick={() =>
+    <MDBDropdownItem 
+    onClick={() =>
       logout({
         returnTo: window.location.origin,
       })
+      // onClick={() =>
+        
+      //   window.location.assign(window.location.origin)
+        
     }>Выйти</MDBDropdownItem>
   );
 };

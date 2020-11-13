@@ -11,13 +11,15 @@ import { MDBBtn, MDBRow, MDBCol, MDBEdgeHeader, MDBCardBody, MDBContainer} from 
 import * as posenet from '@tensorflow-models/posenet'
 const isMobile = /Mobile|webOS|BlackBerry|IEMobile|MeeGo|mini|Fennec|Windows Phone|Android|iP(ad|od|hone)/i.test(navigator.userAgent);
 
+
+
 var intervalId = 0;
 var Width =0;
 var Height =0;
 if (isMobile)
 {
-  Width = window.screen.width;
-  Height = window.screen.height-130;
+  Width = window.screen.width-window.screen.height/100*1;
+  Height = window.screen.height-window.screen.height/100*25;
 }
 else
 {
@@ -120,8 +122,8 @@ class PoseNet extends Component {
       audio: false,
       video: {
         facingMode: 'user',
-        width: videoWidth,
-        height: videoHeight
+        width: {min : 640},
+        height: {min : 480}
       }
     })
 
@@ -249,13 +251,18 @@ class PoseNet extends Component {
                 )
               }
 
-              canvasContext.font = '48px serif'
-              canvasContext.fillText('Время = ' + this.state.timeinsec, 50, 100)
-              canvasContext.fillText('Растяжка = ' + this.drawTwineStretchData(), 50, 200)
+              if (!isMobile) canvasContext.font = '48px serif'
+              else canvasContext.font = '20px serif'
+              if (!isMobile) canvasContext.fillText('Время = ' + this.state.timeinsec, 50, 100)
+              else canvasContext.fillText('Время = ' + this.state.timeinsec, 50, 50)
+              if (!isMobile) canvasContext.fillText('Растяжка = ' + this.drawTwineStretchData(), 50, 200)
+              else canvasContext.fillText('Растяжка = ' + this.drawTwineStretchData(), 50, 90)
               if (this.state.stretchTwineData[0])
               {
-                canvasContext.fillText(this.state.stretchTwineData[1][0], 50, 300)
-                canvasContext.fillText(this.state.stretchTwineData[1][1], 50, 400)
+                if (!isMobile) canvasContext.fillText(this.state.stretchTwineData[1][0], 50, 300)
+                else canvasContext.fillText(this.state.stretchTwineData[1][0], 50, 130)
+                if (!isMobile) canvasContext.fillText(this.state.stretchTwineData[1][1], 50, 400)
+                else canvasContext.fillText(this.state.stretchTwineData[1][1], 50, 170)
               }            
           }
 
@@ -285,17 +292,23 @@ class PoseNet extends Component {
               )
             }
 
-            canvasContext.font = '48px serif'
-            canvasContext.fillText('Время = ' + this.state.timeinsec, 50, 100)
-            canvasContext.fillText('Растяжка = ' + this.drawBackTiltStretchData(), 50, 200)
+
+            if (!isMobile) canvasContext.font = '48px serif'
+            else canvasContext.font = '20px serif'
+            if (!isMobile) canvasContext.fillText('Время = ' + this.state.timeinsec, 50, 100)
+            else canvasContext.fillText('Время = ' + this.state.timeinsec, 50, 50)
+            if (!isMobile) canvasContext.fillText('Растяжка = ' + this.drawBackTiltStretchData(), 50, 200)
+            else canvasContext.fillText('Растяжка = ' + this.drawBackTiltStretchData(), 50, 90)
 
             if (this.state.stretchBackTiltData[0][0])
               {
-                canvasContext.fillText(this.state.stretchBackTiltData[1][0], 50, 300)
+                if (!isMobile) canvasContext.fillText(this.state.stretchBackTiltData[1][0], 50, 300)
+                else canvasContext.fillText(this.state.stretchBackTiltData[1][0], 50, 130)
               } 
             if (this.state.stretchBackTiltData[0][1])
               {
-                canvasContext.fillText(this.state.stretchBackTiltData[1][1], 50, 400)
+                if (!isMobile) canvasContext.fillText(this.state.stretchBackTiltData[1][1], 50, 400)
+                else canvasContext.fillText(this.state.stretchBackTiltData[1][1], 50, 170)
               } 
           }
           
@@ -344,9 +357,12 @@ class PoseNet extends Component {
               )
             }
 
-            canvasContext.font = '48px serif'
-            canvasContext.fillText('Время = ' + this.state.timeinsec, 50, 100)
-            canvasContext.fillText('Растяжка = ' + this.drawStretchData(), 50, 200)
+            if (!isMobile) canvasContext.font = '48px serif'
+            else canvasContext.font = '20px serif'
+            if (!isMobile) canvasContext.fillText('Время = ' + this.state.timeinsec, 50, 100)
+            else canvasContext.fillText('Время = ' + this.state.timeinsec, 50, 50)
+            if (!isMobile) canvasContext.fillText('Растяжка = ' + this.drawStretchData(), 50, 200)
+            else canvasContext.fillText('Растяжка = ' + this.drawStretchData(), 50, 90)
           }
         }
         this.forceUpdate()
@@ -632,8 +648,10 @@ class PoseNet extends Component {
     
     return ( 
       <>  
-      <MDBEdgeHeader color='indigo darken-3' className='sectionPage' />   
-        <MDBContainer>
+
+
+{!isMobile && <MDBEdgeHeader color='indigo darken-3' className='sectionPage' />}
+          {!isMobile &&<MDBContainer>
             <MDBRow>
               <MDBCol
                 md='10'
@@ -644,17 +662,12 @@ class PoseNet extends Component {
                     Направте камеру на себя под прямым углом. Вас должно быть видно в полный рост.
                   </p>
                   <MDBRow className='d-flex flex-row justify-content-center row'>
-                        <video id="videoNoShow" playsInline ref={this.getVideo}/>
-                        <canvas  className="webcam" ref={this.getCanvas} />
+                        <video id="videoNoShow" playsInline ref={this.getVideo} />
+                        <canvas  className="webcam" ref={this.getCanvas} />                  
                   </MDBRow>
                   <MDBRow center>
                         {this.state.OnDoingExercise === false &&<MDBRow center>
-                        {isMobile && <MDBRow center> 
-                          <MDBBtn size='sm' color='indigo' onClick = {this.ChangeState("ForwardTilt")}>Складка</MDBBtn>            
-                          <MDBBtn size='sm' color='indigo' onClick = {this.ChangeState("Twine")}>Разножка</MDBBtn>                   
-                          <MDBBtn size='sm' color='indigo' onClick = {this.ChangeState("BackTilt")}>Наклон назад</MDBBtn> 
-                        </MDBRow>}
-                        {!isMobile && <MDBRow center><MDBCol size="3" className='text-center'> 
+                        <MDBRow center><MDBCol size="3" className='text-center'> 
                           <MDBBtn color='indigo' onClick = {this.ChangeState("ForwardTilt")}>Складка</MDBBtn> 
                         </MDBCol>
                         <MDBCol size="3" className='text-center'> 
@@ -662,14 +675,10 @@ class PoseNet extends Component {
                         </MDBCol>
                         <MDBCol size="5" className='text-center'> 
                           <MDBBtn color='indigo' onClick = {this.ChangeState("BackTilt")}>Наклон назад</MDBBtn> 
-                        </MDBCol></MDBRow>}
+                        </MDBCol></MDBRow>
                         </MDBRow>}
                       {this.state.OnDoingExercise &&<MDBRow center>
-                        {isMobile && <MDBRow center> 
-                          <MDBBtn size='sm' color="red" onClick = {this.ChangeState("Repeat")}>Повторить</MDBBtn>            
-                          <MDBBtn size='sm' color='indigo' onClick = {this.ChangeState("OnDoingExercise")}>Закончить упражнение</MDBBtn>                   
-                        </MDBRow>}
-                        {!isMobile && <MDBRow center><MDBCol size="3"> 
+                        <MDBRow center><MDBCol size="3"> 
                           <MDBBtn color="red" onClick = {this.ChangeState("Repeat")}>Повторить</MDBBtn> 
                         </MDBCol>
                         <MDBCol size="2"> 
@@ -677,13 +686,39 @@ class PoseNet extends Component {
                         </MDBCol>
                         <MDBCol size="7"> 
                           <MDBBtn color='indigo' onClick = {this.ChangeState("OnDoingExercise")}>Закончить упражнение</MDBBtn> 
-                        </MDBCol></MDBRow>}
+                        </MDBCol></MDBRow>
                       </MDBRow>}
                   </MDBRow>
                 </MDBCardBody>
               </MDBCol>
             </MDBRow>
-        </MDBContainer>
+        </MDBContainer>}
+
+        
+      
+      {isMobile &&<MDBContainer>
+              <MDBCol>
+                  <MDBRow className='d-flex flex-row justify-content-center row'>
+                  <video id="videoNoShow" width = {Width} height = {Height} playsInline ref={this.getVideo}/>
+                        <canvas  className="webcam" width = {Width} height = {Height} ref={this.getCanvas} />
+                  </MDBRow>
+                  <MDBRow center>
+                        {this.state.OnDoingExercise === false &&<MDBRow center>
+                        <MDBRow center> 
+                          <MDBBtn size='sm' color='indigo' onClick = {this.ChangeState("ForwardTilt")}>Складка</MDBBtn>            
+                          <MDBBtn size='sm' color='indigo' onClick = {this.ChangeState("Twine")}>Разножка</MDBBtn>                   
+                          <MDBBtn size='sm' color='indigo' onClick = {this.ChangeState("BackTilt")}>Наклон назад</MDBBtn> 
+                        </MDBRow>
+                        </MDBRow>}
+                      {this.state.OnDoingExercise &&<MDBRow center>
+                        <MDBRow center> 
+                          <MDBBtn size='sm' color="red" onClick = {this.ChangeState("Repeat")}>Повторить</MDBBtn>            
+                          <MDBBtn size='sm' color='indigo' onClick = {this.ChangeState("OnDoingExercise")}>Закончить упражнение</MDBBtn>                   
+                        </MDBRow>
+                      </MDBRow>}
+                  </MDBRow>
+              </MDBCol>
+        </MDBContainer>}
       </>    
     )
   }
