@@ -2,7 +2,7 @@ import React, { Component} from "react";
 import { BrowserRouter as Router } from 'react-router-dom';
 //import Loading from "./components";
 import LogoutButton from "./components/logout-button";
-import "./index.css";
+//import "./index.css";
 import logo from './assets/logo.png'
 import {
   MDBNavbar,
@@ -20,7 +20,9 @@ import {
   MDBContainer
 } from 'mdbreact';
 import Routes from './Routes';
+// import DeviceOrientation, { Orientation } from 'react-screen-orientation'
 const isMobile = /Mobile|webOS|BlackBerry|IEMobile|MeeGo|mini|Fennec|Windows Phone|Android|iP(ad|od|hone)/i.test(navigator.userAgent);
+
 
 
 class App extends Component {
@@ -52,9 +54,45 @@ class App extends Component {
       e.target.click();
 }
 
-  componentDidMount() {
+//  deviceOrientation() {
+//   var body = document.body;
+//   switch(window.orientation) {
+//     case 90:
+//       body.classList = '';
+//       body.classList.add('rotation90');
+//       break;
+//     case -90:
+//       body.classList = '';
+//       body.classList.add('rotation-90');
+//       break;
+//     default:
+//       body.classList = '';
+//       body.classList.add('portrait');
+//       break;
+//   }
+// }
+
+  async componentDidMount() {
     window.document.addEventListener("touchmove", this.TwoFingersTouchAndScroll, {passive: false})
     window.document.addEventListener("touchend", this.DoubleTap, {passive: false})
+    // var devWidth, devHeight;
+    // window.addEventListener('load', function() {
+    //   devWidth  = screen.width;
+    //   devHeight = screen.height;
+    // });
+    // window.addEventListener('orientationchange', function () {
+    //   if (devWidth < 768 && (window.orientation === 90 || window.orientation == -90)) {
+    //     document.body.style.width = devWidth + 'px';
+    //     document.body.style.height = devHeight + 'px';
+    //     document.body.style.transform = 'rotate(-90deg)';
+    //     document.body.style.transformOrigin = ''+(devHeight/2)+'px '+(devHeight/2)+'px';
+    //   } else {
+    //     document.body.removeAttribute('style');
+    //   }
+    // }, true);
+    // window.addEventListener('orientationchange', this.deviceOrientation);
+    // this.deviceOrientation();
+    // await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT);
   }
 
   
@@ -77,6 +115,8 @@ class App extends Component {
 
     return (
       <Router>
+        {/* <DeviceOrientation lockOrientation={'portrait'}>
+        <Orientation orientation='portrait' alwaysRender={false}> */}
     	  {!isMobile &&<div className="flyout" >
           <MDBNavbar color='indigo' dark expand='md' fixed='top' scrolling>
             <MDBNavbarBrand  className='py-0 font-weight-bold'>
@@ -149,6 +189,13 @@ class App extends Component {
             </p>
           </MDBFooter>     
         </div>}
+        {/* </Orientation>
+        <Orientation orientation='landscape'>
+          <div>
+            <p>Please rotate your device</p>
+          </div>
+        </Orientation>
+        </DeviceOrientation> */}
       </Router>
     );
   }

@@ -1,15 +1,14 @@
 import {
   drawKeyPoints,
-  calculateStretch,
-  calculateBackTiltStretch,
-  calculateTwineStretch,
-  drawStretch,
-  drawStretchWithTwoPoints
+  drawTwineStretchData,
+  drawBackTiltStretchData,
+  drawStretchData
 } from './utils'
 import React, {Component} from 'react'
 import { MDBBtn, MDBRow, MDBCol, MDBEdgeHeader, MDBCardBody, MDBContainer} from "mdbreact"
 import * as posenet from '@tensorflow-models/posenet'
 const isMobile = /Mobile|webOS|BlackBerry|IEMobile|MeeGo|mini|Fennec|Windows Phone|Android|iP(ad|od|hone)/i.test(navigator.userAgent);
+import swal from 'sweetalert'
 
 
 
@@ -40,8 +39,6 @@ class PoseNet extends Component {
     minPartConfidence: 0.5,
     maxPoseDetections: 2,
     nmsRadius: 20,
-    outputStride: 16,
-    imageScaleFactor: 0.5,
     skeletonColor: '#ffadea',
     skeletonLineWidth: 6,
     loadingText: 'Loading...please be patient...'
@@ -55,11 +52,19 @@ class PoseNet extends Component {
       stretchBackTiltData: [[false, false]],
       stretchTwineData: [[false]],
       Twine: false,
+      PreviousPoses: [],
       ForwardTilt: false,
       OnDoingExercise: false,
       BackTilt: false,
+      leftShoulderBind: undefined,
+      leftHipBind: undefined,
+      // leftKneeBind: undefined,
+      // leftAnkleBind: undefined,
+      gradeOfAssessment: undefined,
+      Result: "too bad to be the truth",
       stopVideo: false,
-      screenshot: null,
+      ruleOfExersice: 0,
+      ProverkaCenter: false,
       Repeat: false,
       timeinsec: 10
     }
@@ -95,7 +100,7 @@ class PoseNet extends Component {
     }
 
     try {
-      this.posenet = await posenet.load()
+      this.posenet = await posenet.load();
     } catch (error) {
       throw new Error('PoseNet failed to load')
     } finally {
@@ -151,9 +156,7 @@ class PoseNet extends Component {
   poseDetectionFrame(canvasContext) {
     const {
       algorithm,
-      imageScaleFactor,
       flipHorizontal,
-      outputStride,
       minPoseConfidence,
       minPartConfidence,
       videoWidth,
@@ -161,7 +164,6 @@ class PoseNet extends Component {
       showVideo,
       showPoints,
       skeletonColor,
-      skeletonLineWidth
     } = this.props
 
     const posenetModel = this.posenet
@@ -170,23 +172,14 @@ class PoseNet extends Component {
     const findPoseDetectionFrame = async () => {
       let poses = []
         switch (algorithm) {
-          // case 'multi-pose': {
-          //   // const net = await posenet.load();
- 
-          //   // const poses = await net.estimateMultiplePoses(image, {
-          //   //   flipHorizontal: false,
-          //   //   maxDetections: 5,
-          //   //   scoreThreshold: 0.5,
-          //   //   nmsRadius: 20
-          //   // });
-          //   break
-          // }
           case 'single-pose': {
             const pose = await posenetModel.estimateSinglePose(
               video,
-              {imageScaleFactor,
-              flipHorizontal,
-              outputStride}
+              {
+                outputStride: 16,
+                //imageScaleFactor: 1.00,
+                flipHorizontal,
+              }
             )
             poses.push(pose)
             break
@@ -219,150 +212,208 @@ class PoseNet extends Component {
             }
           })
 
+          if (this.state.ForwardTilt)
+          {            
+            if (!this.state.ProverkaCenter)
+            {
+              if (this.state.ruleOfExersice === 0)
+              {
+                if (isMobile) 
+                  swal('Вcтаньте прямо перед экраном, в полный рост, левым боком. Когда начнется отсчет в левом верхнем углу, начните выполнять упражнение.')
+                this.setState({ruleOfExersice : 1})
+              }              
+              let pose = poses[0]
+              let leftShoulder = pose['keypoints'][5]
+              let leftHip = pose['keypoints'][11]
+              let leftKnee = pose['keypoints'][13]
+              let leftAnkle = pose['keypoints'][15]
+              if (leftShoulder.score > 0.7 &&
+                leftHip.score > 0.7 &&
+                leftKnee.score > 0.7 &&
+                leftAnkle.score > 0.7
+              ) 
+              {
+                if ((leftShoulder.position.x < (Width/2+20) && leftShoulder.position.x > (Width/2-20)) &&
+                (leftAnkle.position.x < (Height-100)))
+                {
+                  this.setState({leftHipBind: leftHip});
+                  this.setState({ProverkaCenter: true});
+                  this.setState({gradeOfAssessment: (leftAnkle.position.y - leftHip.position.y)/6});
+                }
+              }
+            }
+            else
+            {
+              if (this.state.ruleOfExersice === 1)
+              {
+                intervalId = setInterval(() => this.tick(), 1000)
+                this.setState({ruleOfExersice : 0})
+              }   
+              let pose = poses[0]
+              let leftElbow = pose['keypoints'][7]
+
+      
+              if (!isMobile) canvasContext.font = '48px serif'
+              else canvasContext.font = 'bold 20px serif'
+              if (!isMobile) canvasContext.fillText('Время = ' + this.state.timeinsec, 50, 100)
+              else canvasContext.fillText('Время = ' + this.state.timeinsec, 10, 50)
+              if (!isMobile) 
+              {
+                let result = drawStretchData(leftElbow.position.y, this.state.leftHipBind.position.y, 
+                  this.state.gradeOfAssessment, this.state.Result)
+                console.log(result)
+                this.setState({Result: result})
+                canvasContext.fillText('Растяжка = ' + result, 50, 200)                
+              }
+              else
+              {
+                let result = drawStretchData(leftElbow.position.y, this.state.leftHipBind.position.y, 
+                  this.state.gradeOfAssessment, this.state.Result)
+                console.log(result)
+                this.setState({Result: result})
+                canvasContext.fillText('Растяжка = ' + result, 10, 90)  
+              }
+            }
+          }
+
           if (this.state.Twine)
           {
-
-            this.state.stretchTwineData = calculateTwineStretch(poses)
-
-            if (this.state.stretchTwineData[0])
+            if (!this.state.ProverkaCenter)
             {
-                drawStretchWithTwoPoints(
-                  this.state.stretchTwineData[2][0],
-                  this.state.stretchTwineData[2][2],
-                  skeletonColor,
-                  skeletonLineWidth,
-                  canvasContext
-                )
-        
-                drawStretchWithTwoPoints(
-                  this.state.stretchTwineData[2][1],
-                  this.state.stretchTwineData[2][0],
-                  skeletonColor,
-                  skeletonLineWidth,
-                  canvasContext
-                )
-        
-                drawStretchWithTwoPoints(
-                  this.state.stretchTwineData[2][3],
-                  this.state.stretchTwineData[2][1],
-                  skeletonColor,
-                  skeletonLineWidth,
-                  canvasContext
-                )
-              }
-
-              if (!isMobile) canvasContext.font = '48px serif'
-              else canvasContext.font = '20px serif'
-              if (!isMobile) canvasContext.fillText('Время = ' + this.state.timeinsec, 50, 100)
-              else canvasContext.fillText('Время = ' + this.state.timeinsec, 50, 50)
-              if (!isMobile) canvasContext.fillText('Растяжка = ' + this.drawTwineStretchData(), 50, 200)
-              else canvasContext.fillText('Растяжка = ' + this.drawTwineStretchData(), 50, 90)
-              if (this.state.stretchTwineData[0])
+              if (this.state.ruleOfExersice === 0)
               {
-                if (!isMobile) canvasContext.fillText(this.state.stretchTwineData[1][0], 50, 300)
-                else canvasContext.fillText(this.state.stretchTwineData[1][0], 50, 130)
-                if (!isMobile) canvasContext.fillText(this.state.stretchTwineData[1][1], 50, 400)
-                else canvasContext.fillText(this.state.stretchTwineData[1][1], 50, 170)
-              }            
+                if (isMobile) 
+                  swal('Вcтаньте прямо перед экраном, в полный рост. Когда начнется отсчет в левом верхнем углу, начните выполнять упражнение.')
+                this.setState({ruleOfExersice : 1})
+              }              
+              let pose = poses[0]
+              let leftShoulder = pose['keypoints'][5]
+              let rightShoulder = pose['keypoints'][6]
+              let leftHip = pose['keypoints'][11]
+              let rightHip = pose['keypoints'][12]
+              let leftKnee = pose['keypoints'][13]
+              let rightKnee = pose['keypoints'][14]
+              let leftAnkle = pose['keypoints'][15]
+              let rightAnkle = pose['keypoints'][16]
+              if (leftShoulder.score > 0.7 &&
+                leftHip.score > 0.7 &&
+                leftKnee.score > 0.7 &&
+                leftAnkle.score > 0.7 &&
+                rightShoulder.score > 0.7 &&
+                rightHip.score > 0.7 &&
+                rightKnee.score > 0.7 &&
+                rightAnkle.score > 0.7
+              ) 
+              {
+                if (((leftShoulder.position.x + rightShoulder.position.x - leftShoulder.position.x) < (Width/2+20) && 
+                  (leftShoulder.position.x + rightShoulder.position.x - leftShoulder.position.x) > (Width/2-20)) &&
+                (leftAnkle.position.y < (Height-100)) && (rightAnkle.position.y < (Height-100)))
+                {
+                  this.setState({leftHipBind: leftHip});
+                  this.setState({gradeOfAssessment: (leftAnkle.position.y - leftHip.position.y)/6});
+                  this.setState({ProverkaCenter: true});
+                }
+              }
+            }
+            else
+            {
+              if (this.state.ruleOfExersice === 1)
+              {
+                intervalId = setInterval(() => this.tick(), 1000)
+                this.setState({ruleOfExersice : 0})
+              }   
+              let pose = poses[0]
+              let leftHip = pose['keypoints'][11]
+      
+              if (!isMobile) canvasContext.font = '48px serif'
+              else canvasContext.font = 'bold 20px serif'
+              if (!isMobile) canvasContext.fillText('Время = ' + this.state.timeinsec, 50, 100)
+              else canvasContext.fillText('Время = ' + this.state.timeinsec, 10, 50)
+              if (!isMobile) 
+              {
+                let result = drawTwineStretchData(leftHip.position.y ,this.state.leftHipBind.position.y, 
+                  this.state.gradeOfAssessment, this.state.Result)
+                console.log(result)
+                this.setState({Result: result})
+                canvasContext.fillText('Растяжка = ' + result, 50, 200)                
+              }
+              else
+              {
+                let result = drawTwineStretchData(leftHip.position.y ,this.state.leftHipBind.position.y, 
+                  this.state.gradeOfAssessment, this.state.Result)
+                console.log(result)
+                this.setState({Result: result})
+                canvasContext.fillText('Растяжка = ' + result, 10, 90)  
+              }
+            }
           }
 
           if (this.state.BackTilt)
           {
-            this.state.stretchBackTiltData = calculateBackTiltStretch(poses)
-
-            if (this.state.stretchBackTiltData[0][0]) {
-              drawStretch(
-                this.state.stretchBackTiltData[2][0],
-                this.state.stretchBackTiltData[2][1],
-                this.state.stretchBackTiltData[2][2],
-                skeletonColor,
-                skeletonLineWidth,
-                canvasContext
-              )
-            }
-
-            if (this.state.stretchBackTiltData[0][1]) {
-              drawStretch(
-                this.state.stretchBackTiltData[3][0],
-                this.state.stretchBackTiltData[3][1],
-                this.state.stretchBackTiltData[3][2],
-                skeletonColor,
-                skeletonLineWidth,
-                canvasContext
-              )
-            }
-
-
-            if (!isMobile) canvasContext.font = '48px serif'
-            else canvasContext.font = '20px serif'
-            if (!isMobile) canvasContext.fillText('Время = ' + this.state.timeinsec, 50, 100)
-            else canvasContext.fillText('Время = ' + this.state.timeinsec, 50, 50)
-            if (!isMobile) canvasContext.fillText('Растяжка = ' + this.drawBackTiltStretchData(), 50, 200)
-            else canvasContext.fillText('Растяжка = ' + this.drawBackTiltStretchData(), 50, 90)
-
-            if (this.state.stretchBackTiltData[0][0])
+            if (!this.state.ProverkaCenter)
+            {
+              if (this.state.ruleOfExersice === 0)
               {
-                if (!isMobile) canvasContext.fillText(this.state.stretchBackTiltData[1][0], 50, 300)
-                else canvasContext.fillText(this.state.stretchBackTiltData[1][0], 50, 130)
-              } 
-            if (this.state.stretchBackTiltData[0][1])
+                if (isMobile) 
+                  swal('Вcтаньте на колени, в полный рост, левым боком перед экраном. Когда начнется отсчет в левом верхнем углу, начните выполнять упражнение.')
+                this.setState({ruleOfExersice : 1})
+              }              
+              let pose = poses[0]
+              let leftShoulder = pose['keypoints'][5]
+              let leftHip = pose['keypoints'][11]
+              let leftKnee = pose['keypoints'][13]
+              let leftAnkle = pose['keypoints'][15]
+              let rightAnkle = pose['keypoints'][16]
+              if (leftShoulder.score > 0.7 &&
+                leftHip.score > 0.7 &&
+                leftKnee.score > 0.7
+              ) 
               {
-                if (!isMobile) canvasContext.fillText(this.state.stretchBackTiltData[1][1], 50, 400)
-                else canvasContext.fillText(this.state.stretchBackTiltData[1][1], 50, 170)
-              } 
-          }
-          
-
-          if (this.state.ForwardTilt)
-          {
-            this.state.stretchData = calculateStretch(poses)
-
-            if (this.state.stretchData[0][0]) {
-              drawStretch(
-                this.state.stretchData[2][0],
-                this.state.stretchData[2][1],
-                this.state.stretchData[2][2],
-                skeletonColor,
-                skeletonLineWidth,
-                canvasContext
-              )
-
-              drawStretch(
-                this.state.stretchData[2][1],
-                this.state.stretchData[2][2],
-                this.state.stretchData[2][3],
-                skeletonColor,
-                skeletonLineWidth,
-                canvasContext
-              )
+                if ((leftShoulder.position.x< (Width/2+50)) && 
+                  (leftShoulder.position.x > (Width/2-50)) &&
+                (leftKnee.position.x < (Height-100)) &&
+                (
+                  ((leftAnkle.position.y < (leftKnee.position.y+20)) && (leftAnkle.position.y > (leftKnee.position.y-20))) || 
+                ((rightAnkle.position.y < (leftKnee.position.y+20)) && (rightAnkle.position.y > (leftKnee.position.y-20)))
+                ))
+                {
+                  this.setState({leftShoulderBind: leftShoulder});
+                  this.setState({gradeOfAssessment: (leftHip.position.y - leftShoulder.position.y)/6});
+                  this.setState({ProverkaCenter: true});
+                }
+              }
             }
-
-            if (this.state.stretchData[0][1]) {
-              drawStretch(
-                this.state.stretchData[3][0],
-                this.state.stretchData[3][1],
-                this.state.stretchData[3][2],
-                skeletonColor,
-                skeletonLineWidth,
-                canvasContext
-              )
-
-              drawStretch(
-                this.state.stretchData[3][1],
-                this.state.stretchData[3][2],
-                this.state.stretchData[3][3],
-                skeletonColor,
-                skeletonLineWidth,
-                canvasContext
-              )
+            else
+            {
+              if (this.state.ruleOfExersice === 1)
+              {
+                intervalId = setInterval(() => this.tick(), 1000)
+                this.setState({ruleOfExersice : 0})
+              }   
+              let pose = poses[0]
+              let leftShoulder = pose['keypoints'][5]
+      
+              if (!isMobile) canvasContext.font = '48px serif'
+              else canvasContext.font = 'bold 20px serif'
+              if (!isMobile) canvasContext.fillText('Время = ' + this.state.timeinsec, 50, 100)
+              else canvasContext.fillText('Время = ' + this.state.timeinsec, 10, 50)
+              if (!isMobile) 
+              {
+                let result = drawBackTiltStretchData(leftShoulder.position.y ,this.state.leftShoulderBind.position.y, 
+                  this.state.gradeOfAssessment, this.state.Result)
+                console.log(result)
+                this.setState({Result: result})
+                canvasContext.fillText('Растяжка = ' + result, 50, 200)                
+              }
+              else
+              {
+                let result = drawBackTiltStretchData(leftShoulder.position.y ,this.state.leftShoulderBind.position.y, 
+                  this.state.gradeOfAssessment, this.state.Result)
+                console.log(result)
+                this.setState({Result: result})
+                canvasContext.fillText('Растяжка = ' + result, 10, 90)  
+              }
             }
-
-            if (!isMobile) canvasContext.font = '48px serif'
-            else canvasContext.font = '20px serif'
-            if (!isMobile) canvasContext.fillText('Время = ' + this.state.timeinsec, 50, 100)
-            else canvasContext.fillText('Время = ' + this.state.timeinsec, 50, 50)
-            if (!isMobile) canvasContext.fillText('Растяжка = ' + this.drawStretchData(), 50, 200)
-            else canvasContext.fillText('Растяжка = ' + this.drawStretchData(), 50, 90)
           }
         }
         this.forceUpdate()
@@ -371,234 +422,21 @@ class PoseNet extends Component {
     findPoseDetectionFrame()
   }
 
-
-  drawTwineStretchData() {
-    if (this.state.stretchTwineData[0]) {
-      let stretchResultString = ''
-      let leftAngleHip = this.state.stretchTwineData[1][0]
-      let rightAngleHip = this.state.stretchTwineData[1][1]
-      let res = 0;
-
-      if ((leftAngleHip <=130 && rightAngleHip <=120) || (rightAngleHip <=130 && leftAngleHip <=120) )
-        res = 0
-      else if ((leftAngleHip <= 160 && leftAngleHip > 110 && rightAngleHip <= 150 && rightAngleHip > 120) 
-                || (rightAngleHip <= 160 && rightAngleHip > 110 && leftAngleHip <= 150 && leftAngleHip > 120))
-        res = 1
-      else if ((leftAngleHip <= 180 && leftAngleHip > 140 && rightAngleHip <= 170 && rightAngleHip > 150)
-                || (rightAngleHip <= 180 && rightAngleHip > 140 && leftAngleHip <= 170 && leftAngleHip > 150))
-        res = 2
-      else if ((leftAngleHip <= 180 && leftAngleHip > 160 && rightAngleHip <= 180 && rightAngleHip > 170)
-                || (rightAngleHip <= 180 && rightAngleHip > 160 && leftAngleHip <= 180 && leftAngleHip > 170))
-        res = 3
-
-
-      switch (res) {
-        case 0: {
-          stretchResultString = 'bad'
-          break
-        }
-        case 1: {
-          stretchResultString = 'middle'
-          break
-        }
-        case 2: {
-          stretchResultString = 'good'
-          break
-        }
-        case 3: {
-          stretchResultString = 'excellent'
-          break
-        }
-        default:
-            break;
-      }
-      return stretchResultString
-    }
-  }
-
-  drawBackTiltStretchData() {
-    if (this.state.stretchBackTiltData[0][0]) {
-      console.log("left")
-      let stretchResultString = ''
-      let leftAngleHip = this.state.stretchBackTiltData[1][0]
-
-      let res
-
-      if (leftAngleHip > 135) res = 0
-      if ((leftAngleHip <= 135) && (leftAngleHip >= 120)) res = 1
-      if ((leftAngleHip <= 120) && (leftAngleHip >= 85)) res = 2
-      if (leftAngleHip <= 85) res = 3
-
-      switch (res) {
-        case 0: {
-          stretchResultString = 'bad'
-          break
-        }
-        case 1: {
-          stretchResultString = 'middle'
-          break
-        }
-        case 2: {
-          stretchResultString = 'good'
-          break
-        }
-        case 3: {
-          stretchResultString = 'excellent'
-          break
-        }
-        default:
-            break;
-      }
-
-      return stretchResultString
-    }
-
-    if (this.state.stretchBackTiltData[0][1]) {
-      console.log("right")
-      let stretchResultString = ''
-      let rightAngleHip = this.state.stretchBackTiltData[1][1]
-
-      let res
-
-      if (rightAngleHip > 135) res = 0
-      if ((rightAngleHip <= 135) && (rightAngleHip >= 120)) res = 1
-      if ((rightAngleHip <= 120) && (rightAngleHip >= 85)) res = 2
-      if (rightAngleHip <= 85) res = 3
-
-      switch (res) {
-        case 0: {
-          stretchResultString = 'bad'
-          break
-        }
-        case 1: {
-          stretchResultString = 'middle'
-          break
-        }
-        case 2: {
-          stretchResultString = 'good'
-          break
-        }
-        case 3: {
-          stretchResultString = 'excellent'
-          break
-        }
-        default:
-            break;
-      }
-
-      return stretchResultString
-    }
-  }
-
-
-
-  drawStretchData() {
-    if (this.state.stretchData[0][0]) {
-      let stretchResultString = ''
-      let angleA = this.state.stretchData[1][0]
-      let angleB = this.state.stretchData[1][1]
-
-      let resA
-      let resB
-      let res
-
-      if (angleA < 45) resA = 0
-      if (angleA >= 45 && angleA < 90) resA = 1
-      if (angleA >= 90 && angleA < 135) resA = 2
-      if (angleA >= 135) resA = 3
-
-      if (angleB < 45) resB = 4
-      if (angleB >= 45 && angleB < 90) resB = 3
-      if (angleB >= 90 && angleB < 135) resB = 2
-      if (angleB >= 135) resB = 1
-
-      if (resA > resB) {
-        res = resB
-      } else {
-        res = resA
-      }
-
-      switch (res) {
-        case 0: {
-          stretchResultString = 'bad'
-          break
-        }
-        case 1: {
-          stretchResultString = 'middle'
-          break
-        }
-        case 2: {
-          stretchResultString = 'good'
-          break
-        }
-        case 3: {
-          stretchResultString = 'excellent'
-          break
-        }
-        default:
-            break;
-      }
-
-      return stretchResultString
-    }
-
-    if (this.state.stretchData[0][1]) {
-      let stretchResultString = ''
-      let angleA = this.state.stretchData[1][2]
-      let angleB = this.state.stretchData[1][3]
-
-      let resA
-      let resB
-      let res
-
-      if (angleA < 45) resA = 0
-      if (angleA >= 45 && angleA < 90) resA = 1
-      if (angleA >= 90 && angleA < 135) resA = 2
-      if (angleA >= 135) resA = 3
-
-      if (angleB < 45) resB = 3
-      if (angleB >= 45 && angleB < 90) resB = 2
-      if (angleB >= 90 && angleB < 135) resB = 1
-      if (angleB >= 135) resB = 0
-
-      if (resA > resB) {
-        res = resB
-      } else {
-        res = resA
-      }
-
-      switch (res) {
-        case 0: {
-          stretchResultString = 'bad'
-          break
-        }
-        case 1: {
-          stretchResultString = 'middle'
-          break
-        }
-        case 2: {
-          stretchResultString = 'good'
-          break
-        }
-        case 3: {
-          stretchResultString = 'excellent'
-          break
-        }
-        default:
-            break;
-      }
-
-      return stretchResultString
-    }
-  }
-
   ChangeState = nr => () => {
-    console.log(this.state.stopCalc)
     this.setState({
       "timeinsec" : 10
     })
+    this.setState({ProverkaCenter: false})
+    this.setState({leftHipBind: undefined})
+    // this.setState({leftKneeBind: undefined})
+    // this.setState({leftAnkleBind: undefined})
+    this.setState({leftShoulderBind: undefined})
+    this.setState({Result: "too bad to be the truth"})
+    this.setState({gradeOfAssessment: undefined})
+    this.setState({ruleOfExersice: 0})
     if (nr === "OnDoingExercise" && this.state[nr] === true)
     {
+      this.setState({PreviousPoses : []});
       clearInterval(intervalId);
       intervalId = 0;
       this.setState({
@@ -622,12 +460,13 @@ class PoseNet extends Component {
     {
       if (nr === "Repeat")
       {
+        this.setState({PreviousPoses : []});
         clearInterval(intervalId);
         intervalId = 0;
         this.setState({
           "stopVideo" : false
         })
-        intervalId = setInterval(() => this.tick(), 1000)
+        //intervalId = setInterval(() => this.tick(), 1000)
       }
       else
       {
@@ -637,7 +476,7 @@ class PoseNet extends Component {
         this.setState({
           [nr] : true
         })
-        intervalId = setInterval(() => this.tick(), 1000)
+        //intervalId = setInterval(() => this.tick(), 1000)
       }
     }
 };

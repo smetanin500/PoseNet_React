@@ -1,5 +1,3 @@
-import * as posenet from '@tensorflow-models/posenet'
-
 const pointRadius = 3
 
 export const config = {
@@ -9,18 +7,9 @@ export const config = {
   showSkeleton: true,
   showPoints: true,
   minPoseConfidence: 0.1,
-  //minPartConfidence: 0.5,
-  //maxPoseDetections: 2,
-  //nmsRadius: 20,
-  //outputStride: 16,
-  //imageScaleFactor: 0.5,
   skeletonColor: '#ffadea',
   skeletonLineWidth: 6,
   loadingText: 'Loading...please be patient...'
-}
-
-function toTuple({x, y}) {
-  return [x, y]
 }
 
 export function drawKeyPoints(
@@ -41,282 +30,296 @@ export function drawKeyPoints(
   })
 }
 
-function drawSegment(
-  [firstX, firstY],
-  [nextX, nextY],
-  color,
-  lineWidth,
-  scale,
-  canvasContext
-) {
-  canvasContext.beginPath()
-  canvasContext.moveTo(firstX * scale, firstY * scale)
-  canvasContext.lineTo(nextX * scale, nextY * scale)
-  canvasContext.lineWidth = lineWidth
-  canvasContext.strokeStyle = color
-  canvasContext.stroke()
-}
 
-export function drawSkeleton(
-  keypoints,
-  minConfidence,
-  color,
-  lineWidth,
-  canvasContext,
-  scale = 1
-) {
-  const adjacentKeyPoints = posenet.getAdjacentKeyPoints(
-    keypoints,
-    minConfidence
-  )
-
-  adjacentKeyPoints.forEach(keypoints => {
-    drawSegment(
-      toTuple(keypoints[0].position),
-      toTuple(keypoints[1].position),
-      color,
-      lineWidth,
-      scale,
-      canvasContext
-    )
-  })
-}
-
-export function drawStretch(
-  keypointA,
-  keypointB,
-  keypointC,
-  color,
-  lineWidth,
-  canvasContext,
-  scale = 1
-) {
-  drawSegment(
-    toTuple(keypointA.position),
-    toTuple(keypointB.position),
-    color,
-    lineWidth,
-    scale,
-    canvasContext
-  )
-
-  drawSegment(
-    toTuple(keypointB.position),
-    toTuple(keypointC.position),
-    color,
-    lineWidth,
-    scale,
-    canvasContext
-  )
-}
-
-export function drawStretchWithTwoPoints(
-  keypointA,
-  keypointB,
-  color,
-  lineWidth,
-  canvasContext,
-  scale = 1
-) {
-  drawSegment(
-    toTuple(keypointA.position),
-    toTuple(keypointB.position),
-    color,
-    lineWidth,
-    scale,
-    canvasContext
-  )
-}
-
-function find_angle(A, B, C) {
-  var AB = Math.sqrt(Math.pow(B.x - A.x, 2) + Math.pow(B.y - A.y, 2))
-  var BC = Math.sqrt(Math.pow(B.x - C.x, 2) + Math.pow(B.y - C.y, 2))
-  var AC = Math.sqrt(Math.pow(C.x - A.x, 2) + Math.pow(C.y - A.y, 2))
-
-  return (
-    Math.acos((BC * BC + AB * AB - AC * AC) / (2 * BC * AB)) * 180 / Math.PI
-  )
-}
-
-export function calculateStretch(poses) {
-  let pose = poses[0]
-  //let nose = pose['keypoints'][0]
-  //let leftWrist = pose['keypoints'][9]
-  //let rightWrist = pose['keypoints'][10]
-
-  let rightShoulder = pose['keypoints'][6]
-  let leftShoulder = pose['keypoints'][5]
-  let rightHip = pose['keypoints'][12]
-  let leftHip = pose['keypoints'][11]
-  let rightKnee = pose['keypoints'][14]
-  let leftKnee = pose['keypoints'][13]
-  let rightAnkle = pose['keypoints'][16]
-  let leftAnkle = pose['keypoints'][15]
-
-  let statusLeft = false
-  let statusRight = false
-
-  let leftAngleA = 0
-  let rightAngleA = 0
-  let leftAngleB = 0
-  let rightAngleB = 0
-
-  if (
-    rightShoulder.score > 0.5 &&
-    rightHip.score > 0.5 &&
-    rightKnee.score > 0.5 &&
-    rightAnkle.score > 0.5
-  ) {
-    statusRight = true
-
-    rightAngleA = find_angle(
-      rightAnkle.position,
-      rightKnee.position,
-      rightHip.position
-    )
-    rightAngleB = find_angle(
-      rightShoulder.position,
-      rightHip.position,
-      rightKnee.position
-    )
-  } else if (
-    leftShoulder.score > 0.5 &&
-    leftHip.score > 0.5 &&
-    leftKnee.score > 0.5 &&
-    leftAnkle.score > 0.5
-  ) {
-    statusLeft = true
-
-    leftAngleA = find_angle(
-      leftAnkle.position,
-      leftKnee.position,
-      leftHip.position
-    )
-    leftAngleB = find_angle(
-      leftShoulder.position,
-      leftHip.position,
-      leftKnee.position
-    )
-  } else {
-    statusLeft = false
-    statusRight = false
+export function drawTwineStretchData(leftHip, leftHipBind, gradeOfAssessment, result) {
+  if (result === "too bad to be the truth") {
+    if ((leftHip > (leftHipBind + gradeOfAssessment)) && (leftHip < (leftHipBind + 2*gradeOfAssessment))) 
+    {
+      result = "you can better";
+      return result;
+    }
+    if ((leftHip > (leftHipBind + 2*gradeOfAssessment)) && (leftHip < (leftHipBind + 3*gradeOfAssessment))) 
+    {
+      result = "keep up the good work";
+      return result;
+    }
+    if ((leftHip > (leftHipBind + 3*gradeOfAssessment)) && (leftHip < (leftHipBind + 4*gradeOfAssessment))) 
+    {
+      result = "well done";
+      return result;
+    }
+    if ((leftHip > (leftHipBind + 4*gradeOfAssessment)) && (leftHip < (leftHipBind + 5*gradeOfAssessment))) 
+    {
+      result = "awesome";
+      return result;
+    }
+    if (leftHip > (leftHipBind + 5*gradeOfAssessment)) 
+    {
+      result = "outstanding";
+      return result;
+    }
+    return result;
   }
+  if (result === "you can better") {
+    if ((leftHip > (leftHipBind + 2*gradeOfAssessment)) && (leftHip < (leftHipBind + 3*gradeOfAssessment))) 
+    {
+      result = "keep up the good work";
+      return result;
+    }
+    if ((leftHip > (leftHipBind + 3*gradeOfAssessment)) && (leftHip < (leftHipBind + 4*gradeOfAssessment))) 
+    {
+      result = "well done";
+      return result;
+    }
+    if ((leftHip > (leftHipBind + 4*gradeOfAssessment)) && (leftHip < (leftHipBind + 5*gradeOfAssessment))) 
+    {
+      result = "awesome";
+      return result;
+    }
+    if (leftHip > (leftHipBind + 5*gradeOfAssessment))
+    {
+      result = "outstanding";
+      return result;
+    }
+    return result;
+  }
+  if (result === "keep up the good work") {
+    if ((leftHip > (leftHipBind + 3*gradeOfAssessment)) && (leftHip < (leftHipBind + 4*gradeOfAssessment))) 
+    {
+      result = "well done";
+      return result;
+    }
+    if ((leftHip > (leftHipBind + 4*gradeOfAssessment)) && (leftHip < (leftHipBind + 5*gradeOfAssessment))) 
+    {
+      result = "awesome";
+      return result;
+    }
+    if (leftHip > (leftHipBind + 5*gradeOfAssessment)) 
+    {
+      result = "outstanding";
+      return result;
+    }
+    return result;
+  }
+  if (result === "well done") {
+    if ((leftHip > (leftHipBind + 4*gradeOfAssessment)) && (leftHip < (leftHipBind + 5*gradeOfAssessment))) 
+    {
+      result = "awesome";
+      return result;
+    }
+    if (leftHip > (leftHipBind + 5*gradeOfAssessment))
+    {
+      result = "outstanding";
+      return result;
+    }
+    return result;
+  }
+  if (result === "awesome") {
+    if (leftHip > (leftHipBind + 5*gradeOfAssessment))
+    {
+      result = "outstanding";
+      return result;
+    }
+    return result;
+  }
+  if (result === "outstanding") {
+    result = "outstanding";
+    return result;
+  }
+}
 
-  // let status = false
-  // let angle
-  // if ((nose.score > 0.5) && (leftWrist.score > 0.5) && (rightWrist.score > 0.5)) {
-
-  //   angle = find_angle(leftWrist.position, nose.position, rightWrist.position)
-
-  //   status = true
-
-  // }
-
-  // return [status, angle, leftWrist, nose, rightWrist]
-
-  let status = [statusLeft, statusRight]
-  let angles = [leftAngleA, leftAngleB, rightAngleA, rightAngleB]
-  let positionsLeft = [leftShoulder, leftHip, leftKnee, leftAnkle]
-  let positionsRight = [rightShoulder, rightHip, rightKnee, rightAnkle]
-
-  return [status, angles, positionsLeft, positionsRight]
+export function drawBackTiltStretchData(leftShoulder, leftShoulderBind, gradeOfAssessment, result) {
+  if (result === "too bad to be the truth") {
+    if ((leftShoulder > (leftShoulderBind + gradeOfAssessment)) && (leftShoulder < (leftShoulderBind + 2*gradeOfAssessment))) 
+    {
+      result = "you can better";
+      return result;
+    }
+    if ((leftShoulder > (leftShoulderBind + 2*gradeOfAssessment)) && (leftShoulder < (leftShoulderBind + 3*gradeOfAssessment))) 
+    {
+      result = "keep up the good work";
+      return result;
+    }
+    if ((leftShoulder > (leftShoulderBind + 3*gradeOfAssessment)) && (leftShoulder < (leftShoulderBind + 4*gradeOfAssessment))) 
+    {
+      result = "well done";
+      return result;
+    }
+    if ((leftShoulder > (leftShoulderBind + 4*gradeOfAssessment)) && (leftShoulder < (leftShoulderBind + 5*gradeOfAssessment))) 
+    {
+      result = "awesome";
+      return result;
+    }
+    if (leftShoulder > (leftShoulderBind + 5*gradeOfAssessment)) 
+    {
+      result = "outstanding";
+      return result;
+    }
+    return result;
+  }
+  if (result === "you can better") {
+    if ((leftShoulder > (leftShoulderBind + 2*gradeOfAssessment)) && (leftShoulder < (leftShoulderBind + 3*gradeOfAssessment))) 
+    {
+      result = "keep up the good work";
+      return result;
+    }
+    if ((leftShoulder > (leftShoulderBind + 3*gradeOfAssessment)) && (leftShoulder < (leftShoulderBind + 4*gradeOfAssessment))) 
+    {
+      result = "well done";
+      return result;
+    }
+    if ((leftShoulder > (leftShoulderBind + 4*gradeOfAssessment)) && (leftShoulder < (leftShoulderBind + 5*gradeOfAssessment))) 
+    {
+      result = "awesome";
+      return result;
+    }
+    if (leftShoulder > (leftShoulderBind + 5*gradeOfAssessment)) 
+    {
+      result = "outstanding";
+      return result;
+    }
+    return result;
+  }
+  if (result === "keep up the good work") {
+    if ((leftShoulder > (leftShoulderBind + 3*gradeOfAssessment)) && (leftShoulder < (leftShoulderBind + 4*gradeOfAssessment))) 
+    {
+      result = "well done";
+      return result;
+    }
+    if ((leftShoulder > (leftShoulderBind + 4*gradeOfAssessment)) && (leftShoulder < (leftShoulderBind + 5*gradeOfAssessment))) 
+    {
+      result = "awesome";
+      return result;
+    }
+    if (leftShoulder > (leftShoulderBind + 5*gradeOfAssessment)) 
+    {
+      result = "outstanding";
+      return result;
+    }
+    return result;
+  }
+  if (result === "well done") {
+    if ((leftShoulder > (leftShoulderBind + 4*gradeOfAssessment)) && (leftShoulder < (leftShoulderBind + 5*gradeOfAssessment))) 
+    {
+      result = "awesome";
+      return result;
+    }
+    if (leftShoulder > (leftShoulderBind + 5*gradeOfAssessment)) 
+    {
+      result = "outstanding";
+      return result;
+    }
+    return result;
+  }
+  if (result === "awesome") {
+    if (leftShoulder > (leftShoulderBind + 5*gradeOfAssessment))  
+    {
+      result = "outstanding";
+      return result;
+    }
+    return result;
+  }
+  if (result === "outstanding") {
+    result = "outstanding";
+    return result;
+  }
 }
 
 
 
-export function calculateTwineStretch(poses) {
-  let pose = poses[0]
-
-  let TwineStatus = false;
-  let rightHip = pose['keypoints'][12]
-  let leftHip = pose['keypoints'][11]
-  let rightKnee = pose['keypoints'][14]
-  let leftKnee = pose['keypoints'][13]
-
-  let leftAngleHip = 0
-  let rightAngleHip = 0
-
-  if (
-    rightHip.score > 0.6 &&
-    leftHip.score > 0.6 &&
-    rightKnee.score > 0.6 &&
-    leftKnee.score > 0.6
-  )
-  {
-    TwineStatus = true;
-    rightAngleHip = find_angle(
-      leftHip.position,
-      rightHip.position,
-      rightKnee.position
-    )
-    leftAngleHip = find_angle(
-      rightHip.position,
-      leftHip.position,
-      leftKnee.position
-    )
-  }
-  else
-  {TwineStatus = false}
-
-  
-  let status = [TwineStatus]
-  let angles = [leftAngleHip, rightAngleHip]
-  let positions = [rightHip, leftHip, rightKnee, leftKnee]
-
-  return [status, angles, positions]
-}
-
-
-export function calculateBackTiltStretch(poses) {
-  let pose = poses[0]
-
-  let rightShoulder = pose['keypoints'][6]
-  let leftShoulder = pose['keypoints'][5]
-  let rightHip = pose['keypoints'][12]
-  let leftHip = pose['keypoints'][11]
-  let rightKnee = pose['keypoints'][14]
-  let leftKnee = pose['keypoints'][13]
-
-  let statusLeft = false
-  let statusRight = false
-
-  let leftAngleB = 0
-  let rightAngleB = 0
-
-  if (
-    rightShoulder.score > 0.5 &&
-    rightHip.score > 0.5 &&
-    rightKnee.score > 0.5 
-  ) {
-    statusRight = true
-
-    rightAngleB = find_angle(
-      rightShoulder.position,
-      rightHip.position,
-      rightKnee.position
-    )
-  } else if (
-    leftShoulder.score > 0.5 &&
-    leftHip.score > 0.5 &&
-    leftKnee.score > 0.5 
-  ) {
-    statusLeft = true
-
-    leftAngleB = find_angle(
-      leftShoulder.position,
-      leftHip.position,
-      leftKnee.position
-    )
-  } else {
-    statusLeft = false
-    statusRight = false
-  }
-
-
-  let status = [statusLeft, statusRight]
-  let angles = [ leftAngleB, rightAngleB]
-  let positionsLeft = [leftShoulder, leftHip, leftKnee]
-  let positionsRight = [rightShoulder, rightHip, rightKnee]
-
-  return [status, angles, positionsLeft, positionsRight]
+export function drawStretchData(elbowPosition, hipPosition, gradeOfAssessment, result) {
+    if (result === "too bad to be the truth") {
+      if ((elbowPosition > (hipPosition + gradeOfAssessment)) && (elbowPosition < (hipPosition + 2*gradeOfAssessment))) 
+      {
+        result = "you can better";
+        return result;
+      }
+      if ((elbowPosition > (hipPosition + 2*gradeOfAssessment)) && (elbowPosition < (hipPosition + 3*gradeOfAssessment))) 
+      {
+        result = "keep up the good work";
+        return result;
+      }
+      if ((elbowPosition > (hipPosition + 3*gradeOfAssessment)) && (elbowPosition < (hipPosition + 4*gradeOfAssessment))) 
+      {
+        result = "well done";
+        return result;
+      }
+      if ((elbowPosition > (hipPosition + 4*gradeOfAssessment)) && (elbowPosition < (hipPosition + 5*gradeOfAssessment))) 
+      {
+        result = "awesome";
+        return result;
+      }
+      if (elbowPosition > (hipPosition + 5*gradeOfAssessment)) 
+      {
+        result = "outstanding";
+        return result;
+      }
+      return result;
+    }
+    if (result === "you can better") {
+      if ((elbowPosition > (hipPosition + 2*gradeOfAssessment)) && (elbowPosition < (hipPosition + 3*gradeOfAssessment))) 
+      {
+        result = "keep up the good work";
+        return result;
+      }
+      if ((elbowPosition > (hipPosition + 3*gradeOfAssessment)) && (elbowPosition < (hipPosition + 4*gradeOfAssessment))) 
+      {
+        result = "well done";
+        return result;
+      }
+      if ((elbowPosition > (hipPosition + 4*gradeOfAssessment)) && (elbowPosition < (hipPosition + 5*gradeOfAssessment))) 
+      {
+        result = "awesome";
+        return result;
+      }
+      if (elbowPosition > (hipPosition + 5*gradeOfAssessment)) 
+      {
+        result = "outstanding";
+        return result;
+      }
+      return result;
+    }
+    if (result === "keep up the good work") {
+      if ((elbowPosition > (hipPosition + 3*gradeOfAssessment)) && (elbowPosition < (hipPosition + 4*gradeOfAssessment))) 
+      {
+        result = "well done";
+        return result;
+      }
+      if ((elbowPosition > (hipPosition + 4*gradeOfAssessment)) && (elbowPosition < (hipPosition + 5*gradeOfAssessment))) 
+      {
+        result = "awesome";
+        return result;
+      }
+      if (elbowPosition > (hipPosition + 5*gradeOfAssessment)) 
+      {
+        result = "outstanding";
+        return result;
+      }
+      return result;
+    }
+    if (result === "well done") {
+      if ((elbowPosition > (hipPosition + 4*gradeOfAssessment)) && (elbowPosition < (hipPosition + 5*gradeOfAssessment))) 
+      {
+        result = "awesome";
+        return result;
+      }
+      if (elbowPosition > (hipPosition + 5*gradeOfAssessment)) 
+      {
+        result = "outstanding";
+        return result;
+      }
+      return result;
+    }
+    if (result === "awesome") {
+      if (elbowPosition > (hipPosition + 5*gradeOfAssessment))  
+      {
+        result = "outstanding";
+        return result;
+      }
+      return result;
+    }
+    if (result === "outstanding") {
+      result = "outstanding";
+      return result;
+    }
 }
