@@ -12,18 +12,59 @@ export const config = {
   loadingText: 'Loading...please be patient...'
 }
 
+function toTuple({x, y}) {
+  return [x, y]
+}
+
+function drawSegment(
+  [firstX, firstY],
+  [nextX, nextY],
+  color,
+  lineWidth,
+  scale,
+  canvasContext
+) {
+  canvasContext.beginPath()
+  canvasContext.moveTo(firstX * scale, firstY * scale)
+  canvasContext.lineTo(nextX * scale, nextY * scale)
+  canvasContext.lineWidth = lineWidth
+  canvasContext.strokeStyle = color
+  canvasContext.stroke()
+}
+
+export function drawStretchWithTwoPoints(
+  keypointA,
+  keypointB,
+  color,
+  lineWidth,
+  canvasContext,
+  scale = 1
+) {
+  drawSegment(
+    toTuple(keypointA.position),
+    toTuple(keypointB.position),
+    color,
+    lineWidth,
+    scale,
+    canvasContext
+  )
+}
+
 export function drawKeyPoints(
   keypoints,
   minConfidence,
   skeletonColor,
   canvasContext,
-  scale = 1
+  scale = 1,
 ) {
   keypoints.forEach(keypoint => {
-    if (keypoint.score >= minConfidence) {
+    if (keypoint.score >= minConfidence)
+    {
       const {x, y} = keypoint.position
       canvasContext.beginPath()
       canvasContext.arc(x * scale, y * scale, pointRadius, 0, 2 * Math.PI)
+      canvasContext.font = 'bold 10px serif'
+      canvasContext.fillText(keypoint.position.y, x * scale+10, y * scale+10)
       canvasContext.fillStyle = skeletonColor
       canvasContext.fill()
     }

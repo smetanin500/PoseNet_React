@@ -2,7 +2,8 @@ import {
   drawKeyPoints,
   drawTwineStretchData,
   drawBackTiltStretchData,
-  drawStretchData
+  drawStretchData,
+  drawStretchWithTwoPoints
 } from './utils'
 import React, {Component} from 'react'
 import { MDBBtn, MDBRow, MDBCol, MDBEdgeHeader, MDBCardBody, MDBContainer} from "mdbreact"
@@ -18,7 +19,7 @@ var Height =0;
 if (isMobile)
 {
   Width = window.screen.width-window.screen.height/100*1;
-  Height = window.screen.height-window.screen.height/100*25;
+  Height = window.screen.height-window.screen.height/100*26;
 }
 else
 {
@@ -39,7 +40,7 @@ class PoseNet extends Component {
     minPartConfidence: 0.5,
     maxPoseDetections: 2,
     nmsRadius: 20,
-    skeletonColor: '#ffadea',
+    skeletonColor: '#145aff',
     skeletonLineWidth: 6,
     loadingText: 'Loading...please be patient...'
   }
@@ -59,8 +60,9 @@ class PoseNet extends Component {
       leftShoulderBind: undefined,
       leftHipBind: undefined,
       // leftKneeBind: undefined,
-      // leftAnkleBind: undefined,
+      leftAnkleBind: undefined,
       gradeOfAssessment: undefined,
+      cameraMode: 'user',
       Result: "too bad to be the truth",
       stopVideo: false,
       ruleOfExersice: 0,
@@ -90,14 +92,28 @@ class PoseNet extends Component {
     }
   }
 
+  ChangeCameraView (nr)  { 
+    // if (nr === 'user')
+    //   this.setState({"cameraMode" : 'environment'})
+    // else this.setState({"cameraMode" : 'user'})
+    // try {
+    //   this.setupCamera('environment')
+    // } catch (error) {
+    //   throw new Error(
+    //     'This browser does not support video capture, or this device does not have a camera'
+    //   )
+    // }
+  }
+
   async componentDidMount() {
     try {
-      await this.setupCamera()
+      await this.setupCamera(this.state.cameraMode)
     } catch (error) {
       throw new Error(
         'This browser does not support video capture, or this device does not have a camera'
       )
     }
+    
 
     try {
       this.posenet = await posenet.load();
@@ -112,7 +128,7 @@ class PoseNet extends Component {
     this.detectPose()
   }
 
-  async setupCamera() {
+  async setupCamera(mode) {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       throw new Error(
         'Browser API navigator.mediaDevices.getUserMedia not available'
@@ -126,7 +142,7 @@ class PoseNet extends Component {
     const stream = await navigator.mediaDevices.getUserMedia({
       audio: false,
       video: {
-        facingMode: 'user',
+        facingMode: mode,
         width: {min : 640},
         height: {min : 480}
       }
@@ -164,6 +180,7 @@ class PoseNet extends Component {
       showVideo,
       showPoints,
       skeletonColor,
+      skeletonLineWidth
     } = this.props
 
     const posenetModel = this.posenet
@@ -199,21 +216,30 @@ class PoseNet extends Component {
             canvasContext.restore()
           }
 
-          poses.forEach(({score, keypoints}) => {
-            if (score >= minPoseConfidence) {
-              if (showPoints) {
-                drawKeyPoints(
-                  keypoints,
-                  minPartConfidence,
-                  skeletonColor,
-                  canvasContext
-                )
-              }
-            }
-          })
+          // poses.forEach(({score, keypoints}) => {
+          //   if (score >= minPoseConfidence) {
+          //     if (showPoints) {
+          //       drawKeyPoints(
+          //         keypoints,
+          //         minPartConfidence,
+          //         skeletonColor,
+          //         canvasContext
+          //       )
+          //     }
+          //   }
+          // })
 
           if (this.state.ForwardTilt)
-          {            
+          {
+            let pose = poses[0]
+            //let keypointsForwardTilt = [pose['keypoints'][5], pose['keypoints'][11], pose['keypoints'][13], pose['keypoints'][15], pose['keypoints'][7]]
+            let keypointsForwardTilt = [ pose['keypoints'][5]]
+            drawKeyPoints(
+              keypointsForwardTilt,
+              minPartConfidence,
+              skeletonColor,
+              canvasContext
+            )            
             if (!this.state.ProverkaCenter)
             {
               if (this.state.ruleOfExersice === 0)
@@ -222,7 +248,7 @@ class PoseNet extends Component {
                   swal('Вcтаньте прямо перед экраном, в полный рост, левым боком. Когда начнется отсчет в левом верхнем углу, начните выполнять упражнение.')
                 this.setState({ruleOfExersice : 1})
               }              
-              let pose = poses[0]
+              //let pose = poses[0]
               let leftShoulder = pose['keypoints'][5]
               let leftHip = pose['keypoints'][11]
               let leftKnee = pose['keypoints'][13]
@@ -237,6 +263,7 @@ class PoseNet extends Component {
                 (leftAnkle.position.x < (Height-100)))
                 {
                   this.setState({leftHipBind: leftHip});
+                  this.setState({leftAnkleBind: leftAnkle});
                   this.setState({ProverkaCenter: true});
                   this.setState({gradeOfAssessment: (leftAnkle.position.y - leftHip.position.y)/6});
                 }
@@ -244,12 +271,19 @@ class PoseNet extends Component {
             }
             else
             {
+              drawStretchWithTwoPoints(
+                this.state.leftHipBind,
+                this.state.leftAnkleBind,
+                skeletonColor,
+                skeletonLineWidth,
+                canvasContext
+              )
               if (this.state.ruleOfExersice === 1)
               {
                 intervalId = setInterval(() => this.tick(), 1000)
                 this.setState({ruleOfExersice : 0})
               }   
-              let pose = poses[0]
+              //let pose = poses[0]
               let leftElbow = pose['keypoints'][7]
 
       
@@ -278,6 +312,15 @@ class PoseNet extends Component {
 
           if (this.state.Twine)
           {
+            let pose = poses[0]
+            //let keypointsForwardTilt = [pose['keypoints'][5], pose['keypoints'][6], pose['keypoints'][11], pose['keypoints'][12], pose['keypoints'][13], pose['keypoints'][14], pose['keypoints'][15], pose['keypoints'][16]]
+            let keypointsForwardTilt = [pose['keypoints'][11]]
+            drawKeyPoints(
+              keypointsForwardTilt,
+              minPartConfidence,
+              skeletonColor,
+              canvasContext
+            )      
             if (!this.state.ProverkaCenter)
             {
               if (this.state.ruleOfExersice === 0)
@@ -286,7 +329,7 @@ class PoseNet extends Component {
                   swal('Вcтаньте прямо перед экраном, в полный рост. Когда начнется отсчет в левом верхнем углу, начните выполнять упражнение.')
                 this.setState({ruleOfExersice : 1})
               }              
-              let pose = poses[0]
+              //let pose = poses[0]
               let leftShoulder = pose['keypoints'][5]
               let rightShoulder = pose['keypoints'][6]
               let leftHip = pose['keypoints'][11]
@@ -305,11 +348,12 @@ class PoseNet extends Component {
                 rightAnkle.score > 0.7
               ) 
               {
-                if (((leftShoulder.position.x + rightShoulder.position.x - leftShoulder.position.x) < (Width/2+20) && 
-                  (leftShoulder.position.x + rightShoulder.position.x - leftShoulder.position.x) > (Width/2-20)) &&
-                (leftAnkle.position.y < (Height-100)) && (rightAnkle.position.y < (Height-100)))
+                if (((leftShoulder.position.x + (rightShoulder.position.x - leftShoulder.position.x)/2) < (Width/2+20) && 
+                  (leftShoulder.position.x + (rightShoulder.position.x - leftShoulder.position.x)/2) > (Width/2-20)) &&
+                (leftAnkle.position.y < (Height-50)) && (rightAnkle.position.y < (Height-50)))
                 {
                   this.setState({leftHipBind: leftHip});
+                  this.setState({leftAnkleBind: leftAnkle});
                   this.setState({gradeOfAssessment: (leftAnkle.position.y - leftHip.position.y)/6});
                   this.setState({ProverkaCenter: true});
                 }
@@ -317,12 +361,19 @@ class PoseNet extends Component {
             }
             else
             {
+              drawStretchWithTwoPoints(
+                this.state.leftHipBind,
+                this.state.leftAnkleBind,
+                skeletonColor,
+                skeletonLineWidth,
+                canvasContext
+              )
               if (this.state.ruleOfExersice === 1)
               {
                 intervalId = setInterval(() => this.tick(), 1000)
                 this.setState({ruleOfExersice : 0})
               }   
-              let pose = poses[0]
+              //let pose = poses[0]
               let leftHip = pose['keypoints'][11]
       
               if (!isMobile) canvasContext.font = '48px serif'
@@ -350,6 +401,15 @@ class PoseNet extends Component {
 
           if (this.state.BackTilt)
           {
+            let pose = poses[0]
+            //let keypointsForwardTilt = [pose['keypoints'][5], pose['keypoints'][11], pose['keypoints'][13], pose['keypoints'][15], pose['keypoints'][16]]
+            let keypointsForwardTilt = [pose['keypoints'][5]]
+            drawKeyPoints(
+              keypointsForwardTilt,
+              minPartConfidence,
+              skeletonColor,
+              canvasContext
+            )    
             if (!this.state.ProverkaCenter)
             {
               if (this.state.ruleOfExersice === 0)
@@ -358,7 +418,7 @@ class PoseNet extends Component {
                   swal('Вcтаньте на колени, в полный рост, левым боком перед экраном. Когда начнется отсчет в левом верхнем углу, начните выполнять упражнение.')
                 this.setState({ruleOfExersice : 1})
               }              
-              let pose = poses[0]
+              //let pose = poses[0]
               let leftShoulder = pose['keypoints'][5]
               let leftHip = pose['keypoints'][11]
               let leftKnee = pose['keypoints'][13]
@@ -378,6 +438,7 @@ class PoseNet extends Component {
                 ))
                 {
                   this.setState({leftShoulderBind: leftShoulder});
+                  this.setState({leftHipBind: leftHip});
                   this.setState({gradeOfAssessment: (leftHip.position.y - leftShoulder.position.y)/6});
                   this.setState({ProverkaCenter: true});
                 }
@@ -385,12 +446,19 @@ class PoseNet extends Component {
             }
             else
             {
+              drawStretchWithTwoPoints(
+                this.state.leftShoulderBind,
+                this.state.leftHipBind,                
+                skeletonColor,
+                skeletonLineWidth,
+                canvasContext
+              )
               if (this.state.ruleOfExersice === 1)
               {
                 intervalId = setInterval(() => this.tick(), 1000)
                 this.setState({ruleOfExersice : 0})
               }   
-              let pose = poses[0]
+              //let pose = poses[0]
               let leftShoulder = pose['keypoints'][5]
       
               if (!isMobile) canvasContext.font = '48px serif'
@@ -422,6 +490,8 @@ class PoseNet extends Component {
     findPoseDetectionFrame()
   }
 
+  
+
   ChangeState = nr => () => {
     this.setState({
       "timeinsec" : 10
@@ -429,7 +499,7 @@ class PoseNet extends Component {
     this.setState({ProverkaCenter: false})
     this.setState({leftHipBind: undefined})
     // this.setState({leftKneeBind: undefined})
-    // this.setState({leftAnkleBind: undefined})
+    this.setState({leftAnkleBind: undefined})
     this.setState({leftShoulderBind: undefined})
     this.setState({Result: "too bad to be the truth"})
     this.setState({gradeOfAssessment: undefined})
@@ -547,6 +617,9 @@ class PoseNet extends Component {
                           <MDBBtn size='sm' color='indigo' onClick = {this.ChangeState("ForwardTilt")}>Складка</MDBBtn>            
                           <MDBBtn size='sm' color='indigo' onClick = {this.ChangeState("Twine")}>Разножка</MDBBtn>                   
                           <MDBBtn size='sm' color='indigo' onClick = {this.ChangeState("BackTilt")}>Наклон назад</MDBBtn> 
+                        </MDBRow>
+                        <MDBRow center> 
+                          <MDBBtn size='sm' color='indigo' onClick = {this.ChangeCameraView('cameraMode')}>Сменить вид камеры</MDBBtn>            
                         </MDBRow>
                         </MDBRow>}
                       {this.state.OnDoingExercise &&<MDBRow center>
