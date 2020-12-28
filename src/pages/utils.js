@@ -63,8 +63,8 @@ export function drawKeyPoints(
       const {x, y} = keypoint.position
       canvasContext.beginPath()
       canvasContext.arc(x * scale, y * scale, pointRadius, 0, 2 * Math.PI)
-      canvasContext.font = 'bold 10px serif'
-      canvasContext.fillText(keypoint.position.y, x * scale+10, y * scale+10)
+      // canvasContext.font = 'bold 10px serif'
+      // canvasContext.fillText(keypoint.position.y, x * scale+10, y * scale+10)
       canvasContext.fillStyle = skeletonColor
       canvasContext.fill()
     }

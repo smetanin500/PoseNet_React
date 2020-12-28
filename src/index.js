@@ -15,7 +15,7 @@ import * as serviceWorker from './serviceWorker';
 ReactDOM.render(
     <Router>
       <Auth0ProviderWithHistory> 
-        <App />
+        <div><App /></div>
       </Auth0ProviderWithHistory> 
     </Router>,
     document.getElementById("root"),

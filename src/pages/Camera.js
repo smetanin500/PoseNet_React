@@ -56,12 +56,14 @@ class PoseNet extends Component {
       PreviousPoses: [],
       ForwardTilt: false,
       OnDoingExercise: false,
+      Stream: null,
       BackTilt: false,
       leftShoulderBind: undefined,
       leftHipBind: undefined,
       // leftKneeBind: undefined,
       leftAnkleBind: undefined,
       gradeOfAssessment: undefined,
+      changeView: false,
       cameraMode: 'user',
       Result: "too bad to be the truth",
       stopVideo: false,
@@ -92,17 +94,32 @@ class PoseNet extends Component {
     }
   }
 
-  ChangeCameraView (nr)  { 
-    // if (nr === 'user')
-    //   this.setState({"cameraMode" : 'environment'})
-    // else this.setState({"cameraMode" : 'user'})
-    // try {
-    //   this.setupCamera('environment')
-    // } catch (error) {
-    //   throw new Error(
-    //     'This browser does not support video capture, or this device does not have a camera'
-    //   )
-    // }
+  async ChangeCameraView ()  { 
+    this.setState({changeView: true});
+    let nr = "";
+    if (this.state.cameraMode === 'user')
+    {
+      nr = 'environment'
+      this.setState({"cameraMode" : 'environment'})
+    }
+    else 
+    {
+      nr = 'user'
+      this.setState({"cameraMode" : 'user'})
+    }
+    await this.state.Stream.getTracks().forEach((track) => track.stop());
+    
+    try {
+      await this.setupCamera(nr)
+    } catch (error) {
+      throw new Error(
+        'This browser does not support video capture, or this device does not have a camera'
+      )
+    }
+
+    return new Promise(resolve => {
+      resolve(this.detectPose())
+  })
   }
 
   async componentDidMount() {
@@ -125,10 +142,15 @@ class PoseNet extends Component {
       }, 200)
     }
     setTimeout(this.writeStrecthResult, 5000)
-    this.detectPose()
+    return new Promise(resolve => {
+        resolve(this.detectPose())
+  
+    })
+    
   }
 
   async setupCamera(mode) {
+    
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       throw new Error(
         'Browser API navigator.mediaDevices.getUserMedia not available'
@@ -138,7 +160,6 @@ class PoseNet extends Component {
     const video = this.video
     video.width = videoWidth
     video.height = videoHeight
-
     const stream = await navigator.mediaDevices.getUserMedia({
       audio: false,
       video: {
@@ -147,6 +168,8 @@ class PoseNet extends Component {
         height: {min : 480}
       }
     })
+
+    this.setState({Stream : stream})
 
     video.srcObject = stream
 
@@ -165,7 +188,6 @@ class PoseNet extends Component {
 
     canvas.width = videoWidth
     canvas.height = videoHeight
-
     this.poseDetectionFrame(canvasContext)
   }
 
@@ -173,12 +195,10 @@ class PoseNet extends Component {
     const {
       algorithm,
       flipHorizontal,
-      minPoseConfidence,
       minPartConfidence,
       videoWidth,
       videoHeight,
       showVideo,
-      showPoints,
       skeletonColor,
       skeletonLineWidth
     } = this.props
@@ -190,12 +210,17 @@ class PoseNet extends Component {
       let poses = []
         switch (algorithm) {
           case 'single-pose': {
+            let horizotalF = true;
+            if (this.state.cameraMode === 'user')
+              horizotalF = true
+            else
+              horizotalF = false
             const pose = await posenetModel.estimateSinglePose(
               video,
               {
                 outputStride: 16,
                 //imageScaleFactor: 1.00,
-                flipHorizontal,
+                flipHorizontal: horizotalF,
               }
             )
             poses.push(pose)
@@ -210,30 +235,20 @@ class PoseNet extends Component {
 
           if (showVideo) {
             canvasContext.save()
-            canvasContext.scale(-1, 1)
-            canvasContext.translate(-videoWidth, 0)
+            if (this.state.cameraMode === 'user')
+            {
+              canvasContext.scale(-1, 1)
+              canvasContext.translate(-videoWidth, 0)
+            }
             canvasContext.drawImage(video, 0, 0, videoWidth, videoHeight)
             canvasContext.restore()
           }
-
-          // poses.forEach(({score, keypoints}) => {
-          //   if (score >= minPoseConfidence) {
-          //     if (showPoints) {
-          //       drawKeyPoints(
-          //         keypoints,
-          //         minPartConfidence,
-          //         skeletonColor,
-          //         canvasContext
-          //       )
-          //     }
-          //   }
-          // })
 
           if (this.state.ForwardTilt)
           {
             let pose = poses[0]
             //let keypointsForwardTilt = [pose['keypoints'][5], pose['keypoints'][11], pose['keypoints'][13], pose['keypoints'][15], pose['keypoints'][7]]
-            let keypointsForwardTilt = [ pose['keypoints'][5]]
+            let keypointsForwardTilt = [ pose['keypoints'][7]]
             drawKeyPoints(
               keypointsForwardTilt,
               minPartConfidence,
@@ -295,17 +310,17 @@ class PoseNet extends Component {
               {
                 let result = drawStretchData(leftElbow.position.y, this.state.leftHipBind.position.y, 
                   this.state.gradeOfAssessment, this.state.Result)
-                console.log(result)
                 this.setState({Result: result})
-                canvasContext.fillText('Растяжка = ' + result, 50, 200)                
+                canvasContext.fillText('Растяжка = ' + result, 50, 200)
+                canvasContext.fillText('Результат = ' + (leftElbow.position.y-this.state.leftHipBind.position.y), 50, 300)           
               }
               else
               {
                 let result = drawStretchData(leftElbow.position.y, this.state.leftHipBind.position.y, 
                   this.state.gradeOfAssessment, this.state.Result)
-                console.log(result)
                 this.setState({Result: result})
-                canvasContext.fillText('Растяжка = ' + result, 10, 90)  
+                canvasContext.fillText('Растяжка = ' + result, 10, 90) 
+                canvasContext.fillText('Результат = ' + (leftElbow.position.y-this.state.leftHipBind.position.y), 10, 130)  
               }
             }
           }
@@ -384,17 +399,17 @@ class PoseNet extends Component {
               {
                 let result = drawTwineStretchData(leftHip.position.y ,this.state.leftHipBind.position.y, 
                   this.state.gradeOfAssessment, this.state.Result)
-                console.log(result)
                 this.setState({Result: result})
-                canvasContext.fillText('Растяжка = ' + result, 50, 200)                
+                canvasContext.fillText('Растяжка = ' + result, 50, 200)    
+                canvasContext.fillText('Результат = ' + (leftHip.position.y-this.state.leftHipBind.position.y), 50, 300)            
               }
               else
               {
                 let result = drawTwineStretchData(leftHip.position.y ,this.state.leftHipBind.position.y, 
                   this.state.gradeOfAssessment, this.state.Result)
-                console.log(result)
                 this.setState({Result: result})
-                canvasContext.fillText('Растяжка = ' + result, 10, 90)  
+                canvasContext.fillText('Растяжка = ' + result, 10, 90) 
+                canvasContext.fillText('Результат = ' + (leftHip.position.y-this.state.leftHipBind.position.y), 10, 130)   
               }
             }
           }
@@ -469,17 +484,17 @@ class PoseNet extends Component {
               {
                 let result = drawBackTiltStretchData(leftShoulder.position.y ,this.state.leftShoulderBind.position.y, 
                   this.state.gradeOfAssessment, this.state.Result)
-                console.log(result)
                 this.setState({Result: result})
-                canvasContext.fillText('Растяжка = ' + result, 50, 200)                
+                canvasContext.fillText('Растяжка = ' + result, 50, 200)  
+                canvasContext.fillText('Результат = ' + (leftShoulder.position.y-this.state.lleftShoulderBind.position.y), 50, 300)                
               }
               else
               {
                 let result = drawBackTiltStretchData(leftShoulder.position.y ,this.state.leftShoulderBind.position.y, 
                   this.state.gradeOfAssessment, this.state.Result)
-                console.log(result)
                 this.setState({Result: result})
                 canvasContext.fillText('Растяжка = ' + result, 10, 90)  
+                canvasContext.fillText('Результат = ' + (leftShoulder.position.y-this.state.leftShoulderBind.position.y), 10, 130)  
               }
             }
           }
@@ -487,7 +502,7 @@ class PoseNet extends Component {
         this.forceUpdate()
         requestAnimationFrame(findPoseDetectionFrame)
     }
-    findPoseDetectionFrame()
+    findPoseDetectionFrame();
   }
 
   
@@ -619,7 +634,7 @@ class PoseNet extends Component {
                           <MDBBtn size='sm' color='indigo' onClick = {this.ChangeState("BackTilt")}>Наклон назад</MDBBtn> 
                         </MDBRow>
                         <MDBRow center> 
-                          <MDBBtn size='sm' color='indigo' onClick = {this.ChangeCameraView('cameraMode')}>Сменить вид камеры</MDBBtn>            
+                          <MDBBtn size='sm' color='indigo' onClick = {() => this.ChangeCameraView()}>Сменить вид камеры</MDBBtn>            
                         </MDBRow>
                         </MDBRow>}
                       {this.state.OnDoingExercise &&<MDBRow center>
