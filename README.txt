@@ -35,3 +35,5 @@ How to local debug app with help of smartphone
 3. open the terminal and enter: ./ngrok http 3000
 4. start the app with: npm start
 5. open the site with htpps like https://16a512196c54.ngrok.io
+
+Remote debugging https://developers.google.com/web/tools/chrome-devtools/remote-debugging
