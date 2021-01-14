@@ -10,10 +10,12 @@ import { MDBBtn, MDBRow, MDBCol, MDBEdgeHeader, MDBCardBody, MDBContainer} from 
 import * as posenet from '@tensorflow-models/posenet'
 const isMobile = /Mobile|webOS|BlackBerry|IEMobile|MeeGo|mini|Fennec|Windows Phone|Android|iP(ad|od|hone)/i.test(navigator.userAgent);
 import swal from 'sweetalert'
+import music from '../assets/videorecord.mp3'
 
 
 
 var intervalId = 0;
+var intervalPause = 1;
 var Width =0;
 var Height =0;
 if (isMobile)
@@ -55,6 +57,7 @@ class PoseNet extends Component {
       Twine: false,
       PreviousPoses: [],
       ForwardTilt: false,
+      poseEror: 0,
       OnDoingExercise: false,
       Stream: null,
       BackTilt: false,
@@ -72,6 +75,7 @@ class PoseNet extends Component {
       Repeat: false,
       timeinsec: 10
     }
+    this.audio = new Audio(music);
   }
 
   getCanvas = elem => {
@@ -91,6 +95,18 @@ class PoseNet extends Component {
       this.setState({stopVideo : true})
       clearInterval(intervalId);
       intervalId = 0;
+    }
+  }
+
+  tickPause() {
+    this.setState({
+      timeinsec: this.state.timeinsec - 1
+    })
+    if (this.state.timeinsec === 0)
+    {
+      this.setState({stopVideo : true})
+      clearInterval(intervalPause);
+      intervalPause = 1;
     }
   }
 
@@ -329,7 +345,7 @@ class PoseNet extends Component {
           {
             let pose = poses[0]
             //let keypointsForwardTilt = [pose['keypoints'][5], pose['keypoints'][6], pose['keypoints'][11], pose['keypoints'][12], pose['keypoints'][13], pose['keypoints'][14], pose['keypoints'][15], pose['keypoints'][16]]
-            let keypointsForwardTilt = [pose['keypoints'][11]]
+            let keypointsForwardTilt = [pose['keypoints'][11], pose['keypoints'][13]]
             drawKeyPoints(
               keypointsForwardTilt,
               minPartConfidence,
@@ -341,7 +357,13 @@ class PoseNet extends Component {
               if (this.state.ruleOfExersice === 0)
               {
                 if (isMobile) 
+                {
                   swal('Вcтаньте прямо перед экраном, в полный рост. Когда начнется отсчет в левом верхнем углу, начните выполнять упражнение.')
+                  .then((value) => {
+                    this.audio.play();;
+                  });
+                }
+                  //swal('Вcтаньте прямо перед экраном, в полный рост. Когда начнется отсчет в левом верхнем углу, начните выполнять упражнение.')
                 this.setState({ruleOfExersice : 1})
               }              
               //let pose = poses[0]
@@ -371,6 +393,17 @@ class PoseNet extends Component {
                   this.setState({leftAnkleBind: leftAnkle});
                   this.setState({gradeOfAssessment: (leftAnkle.position.y - leftHip.position.y)/6});
                   this.setState({ProverkaCenter: true});
+                  //<MDBBtn onClick={this.onClick} data-url={"https://s3.amazonaws.com/freecodecamp/drums/Heater-1.mp3"} >Hi</MDBBtn>
+                  // onClick = e => {
+                  //   if (this.audio) {
+                  //     this.audio.pause();
+                  //   }
+                  //   this.audio = new Audio(e.target.dataset.url);
+                  //   this.audio.play();
+                  // }
+                  // this.audio = new Audio(music);
+                  // this.audio.play();
+                  
                 }
               }
             }
@@ -387,6 +420,7 @@ class PoseNet extends Component {
               {
                 intervalId = setInterval(() => this.tick(), 1000)
                 this.setState({ruleOfExersice : 0})
+                //this.onClick();
               }   
               //let pose = poses[0]
               let leftHip = pose['keypoints'][11]
@@ -450,12 +484,24 @@ class PoseNet extends Component {
                 (
                   ((leftAnkle.position.y < (leftKnee.position.y+20)) && (leftAnkle.position.y > (leftKnee.position.y-20))) || 
                 ((rightAnkle.position.y < (leftKnee.position.y+20)) && (rightAnkle.position.y > (leftKnee.position.y-20)))
-                ))
+                ) 
+                // &&
+                // ((leftHip.position.y < (leftKnee.position.y+10)) && (leftHip.position.y > (leftKnee.position.y-10)))
+                )
                 {
                   this.setState({leftShoulderBind: leftShoulder});
                   this.setState({leftHipBind: leftHip});
                   this.setState({gradeOfAssessment: (leftHip.position.y - leftShoulder.position.y)/6});
                   this.setState({ProverkaCenter: true});
+                  //<MDBBtn onClick={this.onClick} data-url={"https://s3.amazonaws.com/freecodecamp/drums/Heater-1.mp3"} >Hi</MDBBtn>
+                  // onClick = e => {
+                  //   if (this.audio) {
+                  //     this.audio.pause();
+                  //   }
+                  //   this.audio = new Audio(e.target.dataset.url);
+                  //   this.audio.play();
+                  // }
+                  this.onClick();
                 }
               }
             }
@@ -475,6 +521,18 @@ class PoseNet extends Component {
               }   
               //let pose = poses[0]
               let leftShoulder = pose['keypoints'][5]
+              let leftHip = pose['keypoints'][11]
+              if (leftHip.score > 0.5 && ((leftHip.position.x > (this.state.leftHipBind.position.x + 15)) || (leftHip.position.x < (this.state.leftHipBind.position.x - 15)) ||
+              (leftHip.position.y > (this.state.leftHipBind.position.y + 15)) || (leftHip.position.y < (this.state.leftHipBind.position.y - 15))))
+              {
+                this.setState({poseEror: this.state.poseEror+1});   
+                if (this.state.poseEror > 11)
+                {
+                  this.ChangeState("OnDoingExercise");
+                  swal('Вы сдвинули бедро. Повторите пожалуйста упражнение.')
+                }                             
+              }
+              
       
               if (!isMobile) canvasContext.font = '48px serif'
               else canvasContext.font = 'bold 20px serif'
@@ -493,7 +551,8 @@ class PoseNet extends Component {
                 let result = drawBackTiltStretchData(leftShoulder.position.y ,this.state.leftShoulderBind.position.y, 
                   this.state.gradeOfAssessment, this.state.Result)
                 this.setState({Result: result})
-                canvasContext.fillText('Растяжка = ' + result, 10, 90)  
+                //canvasContext.fillText('Растяжка = ' + result, 10, 90)  
+                canvasContext.fillText('Растяжка = ' + this.state.poseEror, 10, 90)  
                 canvasContext.fillText('Результат = ' + (leftShoulder.position.y-this.state.leftShoulderBind.position.y), 10, 130)  
               }
             }
@@ -505,12 +564,17 @@ class PoseNet extends Component {
     findPoseDetectionFrame();
   }
 
+  // onClick = e => {
+  //     this.audio.play();
+  //   }
+
   
 
   ChangeState = nr => () => {
     this.setState({
       "timeinsec" : 10
     })
+    this.setState({poseEror: 0})
     this.setState({ProverkaCenter: false})
     this.setState({leftHipBind: undefined})
     // this.setState({leftKneeBind: undefined})
@@ -565,6 +629,9 @@ class PoseNet extends Component {
       }
     }
 };
+
+
+
 
 
   render() {
@@ -634,7 +701,8 @@ class PoseNet extends Component {
                           <MDBBtn size='sm' color='indigo' onClick = {this.ChangeState("BackTilt")}>Наклон назад</MDBBtn> 
                         </MDBRow>
                         <MDBRow center> 
-                          <MDBBtn size='sm' color='indigo' onClick = {() => this.ChangeCameraView()}>Сменить вид камеры</MDBBtn>            
+                          <MDBBtn onClick={this.onClick}  >Hi</MDBBtn>
+                          {/* <MDBBtn size='sm' color='indigo' onClick = {() => this.ChangeCameraView()}>Сменить вид камеры</MDBBtn> */}
                         </MDBRow>
                         </MDBRow>}
                       {this.state.OnDoingExercise &&<MDBRow center>
