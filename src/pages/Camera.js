@@ -55,7 +55,7 @@ class PoseNet extends Component {
       stretchBackTiltData: [[false, false]],
       stretchTwineData: [[false]],
       Twine: false,
-      PreviousPoses: [],
+      //PreviousPoses: [],
       ForwardTilt: false,
       poseEror: 0,
       OnDoingExercise: false,
@@ -73,7 +73,8 @@ class PoseNet extends Component {
       ruleOfExersice: 0,
       ProverkaCenter: false,
       Repeat: false,
-      timeinsec: 10
+      timeinsec: 10,
+      timeinsecForPause: 5
     }
     this.audio = new Audio(music);
   }
@@ -92,6 +93,7 @@ class PoseNet extends Component {
     })
     if (this.state.timeinsec === -1)
     {
+      this.audio.play();
       this.setState({stopVideo : true})
       clearInterval(intervalId);
       intervalId = 0;
@@ -100,13 +102,13 @@ class PoseNet extends Component {
 
   tickPause() {
     this.setState({
-      timeinsec: this.state.timeinsec - 1
+      timeinsecForPause: this.state.timeinsecForPause - 1
     })
-    if (this.state.timeinsec === 0)
+    if (this.state.timeinsecForPause === -1)
     {
-      this.setState({stopVideo : true})
       clearInterval(intervalPause);
       intervalPause = 1;
+      this.setState({ruleOfExersice : 1})
     }
   }
 
@@ -276,27 +278,37 @@ class PoseNet extends Component {
               if (this.state.ruleOfExersice === 0)
               {
                 if (isMobile) 
-                  swal('Вcтаньте прямо перед экраном, в полный рост, левым боком. Когда начнется отсчет в левом верхнем углу, начните выполнять упражнение.')
-                this.setState({ruleOfExersice : 1})
-              }              
-              //let pose = poses[0]
-              let leftShoulder = pose['keypoints'][5]
-              let leftHip = pose['keypoints'][11]
-              let leftKnee = pose['keypoints'][13]
-              let leftAnkle = pose['keypoints'][15]
-              if (leftShoulder.score > 0.7 &&
-                leftHip.score > 0.7 &&
-                leftKnee.score > 0.7 &&
-                leftAnkle.score > 0.7
-              ) 
-              {
-                if ((leftShoulder.position.x < (Width/2+20) && leftShoulder.position.x > (Width/2-20)) &&
-                (leftAnkle.position.x < (Height-100)))
                 {
-                  this.setState({leftHipBind: leftHip});
-                  this.setState({leftAnkleBind: leftAnkle});
-                  this.setState({ProverkaCenter: true});
-                  this.setState({gradeOfAssessment: (leftAnkle.position.y - leftHip.position.y)/6});
+                  swal('Вcтаньте прямо перед экраном, в полный рост, левым боком. Когда начнется отсчет в левом верхнем углу, начните выполнять упражнение.')
+                  .then((value) => {
+                    this.audio.play();
+                    this.audio.pause();
+                    intervalPause = setInterval(() => this.tickPause(), 1000)
+                  });
+                }
+                this.setState({ruleOfExersice : -1})
+              }              
+              if (this.state.ruleOfExersice !== -1)
+              {
+                let leftShoulder = pose['keypoints'][5]
+                let leftHip = pose['keypoints'][11]
+                let leftKnee = pose['keypoints'][13]
+                let leftAnkle = pose['keypoints'][15]
+                if (leftShoulder.score > 0.7 &&
+                  leftHip.score > 0.7 &&
+                  leftKnee.score > 0.7 &&
+                  leftAnkle.score > 0.7
+                ) 
+                {
+                  if ((leftShoulder.position.x < (Width/2+20) && leftShoulder.position.x > (Width/2-20)) &&
+                  (leftAnkle.position.x < (Height-100)))
+                  {
+                    this.setState({leftHipBind: leftHip});
+                    this.setState({leftAnkleBind: leftAnkle});
+                    this.setState({ProverkaCenter: true});
+                    this.setState({gradeOfAssessment: (leftAnkle.position.y - leftHip.position.y)/6});
+                    this.audio.play();   
+                  }
                 }
               }
             }
@@ -344,7 +356,6 @@ class PoseNet extends Component {
           if (this.state.Twine)
           {
             let pose = poses[0]
-            //let keypointsForwardTilt = [pose['keypoints'][5], pose['keypoints'][6], pose['keypoints'][11], pose['keypoints'][12], pose['keypoints'][13], pose['keypoints'][14], pose['keypoints'][15], pose['keypoints'][16]]
             let keypointsForwardTilt = [pose['keypoints'][11], pose['keypoints'][13]]
             drawKeyPoints(
               keypointsForwardTilt,
@@ -360,50 +371,43 @@ class PoseNet extends Component {
                 {
                   swal('Вcтаньте прямо перед экраном, в полный рост. Когда начнется отсчет в левом верхнем углу, начните выполнять упражнение.')
                   .then((value) => {
-                    this.audio.play();;
+                    this.audio.play();
+                    this.audio.pause();
+                    intervalPause = setInterval(() => this.tickPause(), 1000)
                   });
                 }
-                  //swal('Вcтаньте прямо перед экраном, в полный рост. Когда начнется отсчет в левом верхнем углу, начните выполнять упражнение.')
-                this.setState({ruleOfExersice : 1})
+                this.setState({ruleOfExersice : -1})
               }              
-              //let pose = poses[0]
-              let leftShoulder = pose['keypoints'][5]
-              let rightShoulder = pose['keypoints'][6]
-              let leftHip = pose['keypoints'][11]
-              let rightHip = pose['keypoints'][12]
-              let leftKnee = pose['keypoints'][13]
-              let rightKnee = pose['keypoints'][14]
-              let leftAnkle = pose['keypoints'][15]
-              let rightAnkle = pose['keypoints'][16]
-              if (leftShoulder.score > 0.7 &&
-                leftHip.score > 0.7 &&
-                leftKnee.score > 0.7 &&
-                leftAnkle.score > 0.7 &&
-                rightShoulder.score > 0.7 &&
-                rightHip.score > 0.7 &&
-                rightKnee.score > 0.7 &&
-                rightAnkle.score > 0.7
-              ) 
+              if (this.state.ruleOfExersice !== -1)
               {
-                if (((leftShoulder.position.x + (rightShoulder.position.x - leftShoulder.position.x)/2) < (Width/2+20) && 
-                  (leftShoulder.position.x + (rightShoulder.position.x - leftShoulder.position.x)/2) > (Width/2-20)) &&
-                (leftAnkle.position.y < (Height-50)) && (rightAnkle.position.y < (Height-50)))
+                let leftShoulder = pose['keypoints'][5]
+                let rightShoulder = pose['keypoints'][6]
+                let leftHip = pose['keypoints'][11]
+                let rightHip = pose['keypoints'][12]
+                let leftKnee = pose['keypoints'][13]
+                let rightKnee = pose['keypoints'][14]
+                let leftAnkle = pose['keypoints'][15]
+                let rightAnkle = pose['keypoints'][16]
+                if (leftShoulder.score > 0.7 &&
+                  leftHip.score > 0.7 &&
+                  leftKnee.score > 0.7 &&
+                  leftAnkle.score > 0.7 &&
+                  rightShoulder.score > 0.7 &&
+                  rightHip.score > 0.7 &&
+                  rightKnee.score > 0.7 &&
+                  rightAnkle.score > 0.7
+                ) 
                 {
-                  this.setState({leftHipBind: leftHip});
-                  this.setState({leftAnkleBind: leftAnkle});
-                  this.setState({gradeOfAssessment: (leftAnkle.position.y - leftHip.position.y)/6});
-                  this.setState({ProverkaCenter: true});
-                  //<MDBBtn onClick={this.onClick} data-url={"https://s3.amazonaws.com/freecodecamp/drums/Heater-1.mp3"} >Hi</MDBBtn>
-                  // onClick = e => {
-                  //   if (this.audio) {
-                  //     this.audio.pause();
-                  //   }
-                  //   this.audio = new Audio(e.target.dataset.url);
-                  //   this.audio.play();
-                  // }
-                  // this.audio = new Audio(music);
-                  // this.audio.play();
-                  
+                  if (((leftShoulder.position.x + (rightShoulder.position.x - leftShoulder.position.x)/2) < (Width/2+20) && 
+                    (leftShoulder.position.x + (rightShoulder.position.x - leftShoulder.position.x)/2) > (Width/2-20)) &&
+                  (leftAnkle.position.y < (Height-50)) && (rightAnkle.position.y < (Height-50)))
+                  {
+                    this.setState({leftHipBind: leftHip});
+                    this.setState({leftAnkleBind: leftAnkle});
+                    this.setState({gradeOfAssessment: (leftAnkle.position.y - leftHip.position.y)/6});
+                    this.setState({ProverkaCenter: true});
+                    this.audio.play();                    
+                  }
                 }
               }
             }
@@ -420,9 +424,7 @@ class PoseNet extends Component {
               {
                 intervalId = setInterval(() => this.tick(), 1000)
                 this.setState({ruleOfExersice : 0})
-                //this.onClick();
               }   
-              //let pose = poses[0]
               let leftHip = pose['keypoints'][11]
       
               if (!isMobile) canvasContext.font = '48px serif'
@@ -451,7 +453,6 @@ class PoseNet extends Component {
           if (this.state.BackTilt)
           {
             let pose = poses[0]
-            //let keypointsForwardTilt = [pose['keypoints'][5], pose['keypoints'][11], pose['keypoints'][13], pose['keypoints'][15], pose['keypoints'][16]]
             let keypointsForwardTilt = [pose['keypoints'][5]]
             drawKeyPoints(
               keypointsForwardTilt,
@@ -464,44 +465,45 @@ class PoseNet extends Component {
               if (this.state.ruleOfExersice === 0)
               {
                 if (isMobile) 
-                  swal('Вcтаньте на колени, в полный рост, левым боком перед экраном. Когда начнется отсчет в левом верхнем углу, начните выполнять упражнение.')
-                this.setState({ruleOfExersice : 1})
-              }              
-              //let pose = poses[0]
-              let leftShoulder = pose['keypoints'][5]
-              let leftHip = pose['keypoints'][11]
-              let leftKnee = pose['keypoints'][13]
-              let leftAnkle = pose['keypoints'][15]
-              let rightAnkle = pose['keypoints'][16]
-              if (leftShoulder.score > 0.7 &&
-                leftHip.score > 0.7 &&
-                leftKnee.score > 0.7
-              ) 
-              {
-                if ((leftShoulder.position.x< (Width/2+50)) && 
-                  (leftShoulder.position.x > (Width/2-50)) &&
-                (leftKnee.position.x < (Height-100)) &&
-                (
-                  ((leftAnkle.position.y < (leftKnee.position.y+20)) && (leftAnkle.position.y > (leftKnee.position.y-20))) || 
-                ((rightAnkle.position.y < (leftKnee.position.y+20)) && (rightAnkle.position.y > (leftKnee.position.y-20)))
-                ) 
-                // &&
-                // ((leftHip.position.y < (leftKnee.position.y+10)) && (leftHip.position.y > (leftKnee.position.y-10)))
-                )
                 {
-                  this.setState({leftShoulderBind: leftShoulder});
-                  this.setState({leftHipBind: leftHip});
-                  this.setState({gradeOfAssessment: (leftHip.position.y - leftShoulder.position.y)/6});
-                  this.setState({ProverkaCenter: true});
-                  //<MDBBtn onClick={this.onClick} data-url={"https://s3.amazonaws.com/freecodecamp/drums/Heater-1.mp3"} >Hi</MDBBtn>
-                  // onClick = e => {
-                  //   if (this.audio) {
-                  //     this.audio.pause();
-                  //   }
-                  //   this.audio = new Audio(e.target.dataset.url);
-                  //   this.audio.play();
-                  // }
-                  this.onClick();
+                  swal('Вcтаньте на колени, в полный рост, левым боком перед экраном. Когда начнется отсчет в левом верхнем углу, начните выполнять упражнение.')
+                  .then((value) => {
+                    this.audio.play();
+                    this.audio.pause();
+                    intervalPause = setInterval(() => this.tickPause(), 1000)
+                  });
+                }
+                this.setState({ruleOfExersice : -1})
+              }              
+              if (this.state.ruleOfExersice !== -1)
+              {
+                let leftShoulder = pose['keypoints'][5]
+                let leftHip = pose['keypoints'][11]
+                let leftKnee = pose['keypoints'][13]
+                let leftAnkle = pose['keypoints'][15]
+                let rightAnkle = pose['keypoints'][16]
+                if (leftShoulder.score > 0.7 &&
+                  leftHip.score > 0.7 &&
+                  leftKnee.score > 0.7
+                ) 
+                {
+                  if ((leftShoulder.position.x< (Width/2+50)) && 
+                    (leftShoulder.position.x > (Width/2-50)) &&
+                  (leftKnee.position.x < (Height-100)) &&
+                  (
+                    ((leftAnkle.position.y < (leftKnee.position.y+20)) && (leftAnkle.position.y > (leftKnee.position.y-20))) || 
+                  ((rightAnkle.position.y < (leftKnee.position.y+20)) && (rightAnkle.position.y > (leftKnee.position.y-20)))
+                  ) 
+                  // &&
+                  // ((leftHip.position.y < (leftKnee.position.y+10)) && (leftHip.position.y > (leftKnee.position.y-10)))
+                  )
+                  {
+                    this.setState({leftShoulderBind: leftShoulder});
+                    this.setState({leftHipBind: leftHip});
+                    this.setState({gradeOfAssessment: (leftHip.position.y - leftShoulder.position.y)/6});
+                    this.setState({ProverkaCenter: true});
+                    this.audio.play();   
+                  }
                 }
               }
             }
@@ -528,8 +530,11 @@ class PoseNet extends Component {
                 this.setState({poseEror: this.state.poseEror+1});   
                 if (this.state.poseEror > 11)
                 {
-                  this.ChangeState("OnDoingExercise");
                   swal('Вы сдвинули бедро. Повторите пожалуйста упражнение.')
+                  .then((value) => {
+                    this.ChangeState("OnDoingExercise");
+                  });                  
+                  //swal('Вы сдвинули бедро. Повторите пожалуйста упражнение.')
                 }                             
               }
               
@@ -563,16 +568,14 @@ class PoseNet extends Component {
     }
     findPoseDetectionFrame();
   }
-
-  // onClick = e => {
-  //     this.audio.play();
-  //   }
-
   
 
   ChangeState = nr => () => {
     this.setState({
       "timeinsec" : 10
+    })
+    this.setState({
+      "timeinsecForPause" : 5
     })
     this.setState({poseEror: 0})
     this.setState({ProverkaCenter: false})
@@ -585,9 +588,11 @@ class PoseNet extends Component {
     this.setState({ruleOfExersice: 0})
     if (nr === "OnDoingExercise" && this.state[nr] === true)
     {
-      this.setState({PreviousPoses : []});
+      //this.setState({PreviousPoses : []});      
       clearInterval(intervalId);
+      clearInterval(intervalPause);
       intervalId = 0;
+      intervalPause = 1;
       this.setState({
           "stopVideo" : false
       })
@@ -609,13 +614,14 @@ class PoseNet extends Component {
     {
       if (nr === "Repeat")
       {
-        this.setState({PreviousPoses : []});
+        //this.setState({PreviousPoses : []});
         clearInterval(intervalId);
+        clearInterval(intervalPause);
         intervalId = 0;
+        intervalPause = 1;
         this.setState({
           "stopVideo" : false
         })
-        //intervalId = setInterval(() => this.tick(), 1000)
       }
       else
       {
@@ -625,7 +631,6 @@ class PoseNet extends Component {
         this.setState({
           [nr] : true
         })
-        //intervalId = setInterval(() => this.tick(), 1000)
       }
     }
 };
