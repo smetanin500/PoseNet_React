@@ -3,7 +3,8 @@ import {
   drawTwineStretchData,
   drawBackTiltStretchData,
   drawStretchData,
-  drawStretchWithTwoPoints
+  drawStretchWithTwoPoints,
+  drawCircle
 } from './utils'
 import React, {Component} from 'react'
 import { MDBBtn, MDBRow, MDBCol, MDBEdgeHeader, MDBCardBody, MDBContainer} from "mdbreact"
@@ -11,8 +12,10 @@ import * as posenet from '@tensorflow-models/posenet'
 const isMobile = /Mobile|webOS|BlackBerry|IEMobile|MeeGo|mini|Fennec|Windows Phone|Android|iP(ad|od|hone)/i.test(navigator.userAgent);
 import swal from 'sweetalert'
 import music from '../assets/videorecord.mp3'
-
-
+import html2canvas from 'html2canvas'
+import ReactDOM from 'react-dom'
+import canvasToImage from 'canvas-to-image';
+import DownloadLink from "react-download-link";
 
 var intervalId = 0;
 var intervalPause = 1;
@@ -49,7 +52,7 @@ class PoseNet extends Component {
 
   constructor(props) {
     super(props, PoseNet.defaultProps)
-
+    this.canvasRef = React.createRef();
     this.state = {
       stretchData: [[false, false]],
       stretchBackTiltData: [[false, false]],
@@ -74,12 +77,17 @@ class PoseNet extends Component {
       ProverkaCenter: false,
       Repeat: false,
       timeinsec: 10,
-      timeinsecForPause: 5
+      timeinsecForPause: 5,
+      startPoseGraph: [],
+      imgUrl:''
     }
     this.audio = new Audio(music);
   }
 
-  getCanvas = elem => {
+  getCanvas = () => {
+    return this.canvas
+  }
+  setCanvas = elem => {
     this.canvas = elem
   }
 
@@ -110,6 +118,36 @@ class PoseNet extends Component {
       intervalPause = 1;
       this.setState({ruleOfExersice : 1})
     }
+  }
+
+  setStartPoseGraphPoints(canvasWidth, canvasHeight) {
+
+    let maxX = canvasWidth
+    let maxY = canvasHeight
+
+    let point1 = {position: {x: Math.floor(maxX * 0.5), y: Math.floor(maxY * 0.2)}} // Центр головы. Радиус будет 10
+    let point2 = {position: {x: Math.floor(maxX * 0.5), y: Math.floor(maxY * 0.3)}} // Соединение головы и туловища
+    let point3 = {position: {x: Math.floor(maxX * 0.5), y: Math.floor(maxY * 0.35)}} // Соединение туловища и рук
+    let point4 = {position: {x: Math.floor(maxX * 0.25), y: Math.floor(maxY * 0.6)}} // Правая кисть
+    let point5 = {position: {x: Math.floor(maxX * 0.75), y: Math.floor(maxY * 0.6)}} // Левая кисть
+    let point6 = {position: {x: Math.floor(maxX * 0.5), y: Math.floor(maxY * 0.65)}} // Соединение туловища и ног
+    let point7 = {position: {x: Math.floor(maxX * 0.25), y: Math.floor(maxY * 0.9)}} // Правая стопа
+    let point8 = {position: {x: Math.floor(maxX * 0.75), y: Math.floor(maxY * 0.9)}} // Левая стопа
+     
+    let points = [point1, point2, point3, point4, point5, point6, point7, point8]
+    this.setState({startPoseGraph: points})
+  }
+
+  drawHumanSkeleton(color, lineWidth, canvas) {
+
+    drawStretchWithTwoPoints(this.state.startPoseGraph[1],this.state.startPoseGraph[5],color,lineWidth,canvas) // Туловище
+    drawStretchWithTwoPoints(this.state.startPoseGraph[2],this.state.startPoseGraph[3],color,lineWidth,canvas) // Правая рука
+    drawStretchWithTwoPoints(this.state.startPoseGraph[2],this.state.startPoseGraph[4],color,lineWidth,canvas) // Левая рука
+    drawStretchWithTwoPoints(this.state.startPoseGraph[5],this.state.startPoseGraph[6],color,lineWidth,canvas) // Правая нога
+    drawStretchWithTwoPoints(this.state.startPoseGraph[5],this.state.startPoseGraph[7],color,lineWidth,canvas) // Левая нога
+
+    let radius = this.state.startPoseGraph[1].position.y - this.state.startPoseGraph[0].position.y
+    drawCircle(this.state.startPoseGraph[0],radius,color,lineWidth,canvas) // Голова
   }
 
   async ChangeCameraView ()  { 
@@ -206,6 +244,7 @@ class PoseNet extends Component {
 
     canvas.width = videoWidth
     canvas.height = videoHeight
+    this.setStartPoseGraphPoints(canvas.width, canvas.height)
     this.poseDetectionFrame(canvasContext)
   }
 
@@ -365,6 +404,8 @@ class PoseNet extends Component {
             )      
             if (!this.state.ProverkaCenter)
             {
+              this.drawHumanSkeleton(skeletonColor, skeletonLineWidth, canvasContext)
+
               if (this.state.ruleOfExersice === 0)
               {
                 if (isMobile) 
@@ -635,6 +676,55 @@ class PoseNet extends Component {
     }
 };
 
+makeScreenshot = () => {
+  let canvas = this.canvasRef.current;
+  let url = canvas.toDataURL("image/png");
+  console.log(canvas,url)
+  this.setState({
+    imgUrl: url
+  })
+  window.location.href = url;
+//   const canvasEl = document.getElementById('root');
+// console.log(canvasEl)
+// if (canvasEl != null) {
+//   canvasToImage(canvasEl, { 
+//     name: 'myPNG',
+//     type: 'png',
+//     quality: 1
+//   });
+// }
+
+
+  // console.log(document.querySelector("#capture"))
+  // html2canvas(document.querySelector("#capture")).then(canvas => {
+  //   console.log(canvas)
+  //   document.body.appendChild(this.state.canvas)
+  // });
+
+  //var canvas = document.getElementById("#canvasWebcam");
+  //var canvas = ReactDOM.findDOMNode(this.refs.canvasWebcam)
+
+  //var ctx = canvas.getContext("2d");
+  // if (this.getCanvas != null){
+  //   var imageURI = this.getCanvas.toDataURL("image/jpg");
+  //   console.log("Screenshot")
+  //   this.setState({imgUrl: imageURI})
+  // }
+  //console.log("canvas1 ", canvas)
+
+  //el.href = imageURI;
+  // html2canvas(document.body).then(function(canvas) {
+  //   console.log("in then")
+  //   document.body.appendChild(canvas);
+  // });
+  // html2canvas(document.getElementById("root"), {scale: 2}).then(canvas =>
+  //   {
+  //       canvas.id = "canvasWebcam";
+  //       var main = document.getElementById("main");
+  //       //while (main.firstChild) { main.removeChild(main.firstChild); }
+  //       main.appendChild(canvas);
+  //   });
+}
 
 
 
@@ -647,7 +737,7 @@ class PoseNet extends Component {
 
 
 {!isMobile && <MDBEdgeHeader color='indigo darken-3' className='sectionPage' />}
-          {!isMobile &&<MDBContainer>
+          {!isMobile &&<MDBContainer id='main'>
             <MDBRow>
               <MDBCol
                 md='10'
@@ -655,11 +745,11 @@ class PoseNet extends Component {
               >
                 <MDBCardBody className='text-center'>
                   <p className='pb-4'>
-                    Направте камеру на себя под прямым углом. Вас должно быть видно в полный рост.
+                    Направьте камеру на себя под прямым углом. Вас должно быть видно в полный рост.
                   </p>
-                  <MDBRow className='d-flex flex-row justify-content-center row'>
+                  <MDBRow id="screenshot" className='d-flex flex-row justify-content-center row'ref="canvasWebcam">
                         <video id="videoNoShow" playsInline ref={this.getVideo} />
-                        <canvas  className="webcam" ref={this.getCanvas} />                  
+                        <canvas id='canvasWebcam' className="webcam" ref={this.getCanvas} />                  
                   </MDBRow>
                   <MDBRow center>
                         {this.state.OnDoingExercise === false &&<MDBRow center>
@@ -695,8 +785,9 @@ class PoseNet extends Component {
       {isMobile &&<MDBContainer>
               <MDBCol>
                   <MDBRow className='d-flex flex-row justify-content-center row'>
-                  <video id="videoNoShow" width = {Width} height = {Height} playsInline ref={this.getVideo}/>
-                        <canvas  className="webcam" width = {Width} height = {Height} ref={this.getCanvas} />
+                        <video id="videoNoShow" width = {Width} height = {Height} playsInline ref={this.getVideo}/>
+                        <canvas  className="webcam" width = {Width} height = {Height} ref={this.canvasRef} />
+                        <a href={this.state.imgUrl} download={'webcam.png'}>Download canvas</a>
                   </MDBRow>
                   <MDBRow center>
                         {this.state.OnDoingExercise === false &&<MDBRow center>
@@ -712,6 +803,7 @@ class PoseNet extends Component {
                         </MDBRow>}
                       {this.state.OnDoingExercise &&<MDBRow center>
                         <MDBRow center> 
+                          <a id="download" download="myImage.jpg" href={this.state.imgUrl} onclick={this.makeScreenshot()}>Download to myImage.jpg</a>
                           <MDBBtn size='sm' color="red" onClick = {this.ChangeState("Repeat")}>Повторить</MDBBtn>            
                           <MDBBtn size='sm' color='indigo' onClick = {this.ChangeState("OnDoingExercise")}>Закончить упражнение</MDBBtn>                   
                         </MDBRow>

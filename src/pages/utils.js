@@ -32,6 +32,38 @@ function drawSegment(
   canvasContext.stroke()
 }
 
+function drawRound(
+  [firstX, firstY],
+  radius,
+  color,
+  lineWidth,
+  scale,
+  canvasContext
+) {
+  canvasContext.beginPath()
+  canvasContext.arc(firstX * scale, firstY * scale, radius * scale, 0, 2 * Math.PI, true)
+  canvasContext.lineWidth = lineWidth
+  canvasContext.strokeStyle = color
+  canvasContext.stroke()
+}
+
+export function drawCircle (
+  keypointA,
+  radius,
+  color,
+  lineWidth,
+  canvasContext,
+  scale = 1
+) {
+  drawRound(
+    toTuple(keypointA.position),
+    radius,
+    color,
+    lineWidth,
+    scale,
+    canvasContext
+  )
+}
 export function drawStretchWithTwoPoints(
   keypointA,
   keypointB,
