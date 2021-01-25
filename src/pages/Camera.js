@@ -8,19 +8,16 @@ import {
 } from './utils'
 import React, {Component} from 'react'
 import { MDBBtn, MDBRow, MDBCol, MDBEdgeHeader, MDBCardBody, MDBContainer} from "mdbreact"
-import * as posenet from '@tensorflow-models/posenet'
+import * as posenet from '@tensorflow-models/posenet';
 const isMobile = /Mobile|webOS|BlackBerry|IEMobile|MeeGo|mini|Fennec|Windows Phone|Android|iP(ad|od|hone)/i.test(navigator.userAgent);
 import swal from 'sweetalert'
 import music from '../assets/videorecord.mp3'
-import html2canvas from 'html2canvas'
-import ReactDOM from 'react-dom'
-import canvasToImage from 'canvas-to-image';
-import DownloadLink from "react-download-link";
 
 var intervalId = 0;
 var intervalPause = 1;
 var Width =0;
 var Height =0;
+let siteShot = require("screenshot-site");
 if (isMobile)
 {
   Width = window.screen.width-window.screen.height/100*1;
@@ -52,7 +49,6 @@ class PoseNet extends Component {
 
   constructor(props) {
     super(props, PoseNet.defaultProps)
-    this.canvasRef = React.createRef();
     this.state = {
       stretchData: [[false, false]],
       stretchBackTiltData: [[false, false]],
@@ -84,10 +80,7 @@ class PoseNet extends Component {
     this.audio = new Audio(music);
   }
 
-  getCanvas = () => {
-    return this.canvas
-  }
-  setCanvas = elem => {
+  getCanvas = elem => {
     this.canvas = elem
   }
 
@@ -285,6 +278,11 @@ class PoseNet extends Component {
           }
           default:
             break;
+        }
+        if (this.state.stopVideo)
+        {
+          let resolution = Width+"x"+Height;
+          siteShot.getUrl(resolution, 1, `jpeg`, `f0a47ca42910.ngrok.io/camera`)
         }
         if (!this.state.stopVideo)
         {
@@ -676,14 +674,14 @@ class PoseNet extends Component {
     }
 };
 
-makeScreenshot = () => {
-  let canvas = this.canvasRef.current;
-  let url = canvas.toDataURL("image/png");
-  console.log(canvas,url)
-  this.setState({
-    imgUrl: url
-  })
-  window.location.href = url;
+// makeScreenshot = () => {
+//   let canvas = this.canvasRef.current;
+//   let url = canvas.toDataURL("image/png");
+//   console.log(canvas,url)
+//   this.setState({
+//     imgUrl: url
+//   })
+//   window.location.href = url;
 //   const canvasEl = document.getElementById('root');
 // console.log(canvasEl)
 // if (canvasEl != null) {
@@ -724,7 +722,7 @@ makeScreenshot = () => {
   //       //while (main.firstChild) { main.removeChild(main.firstChild); }
   //       main.appendChild(canvas);
   //   });
-}
+//}
 
 
 
@@ -737,7 +735,7 @@ makeScreenshot = () => {
 
 
 {!isMobile && <MDBEdgeHeader color='indigo darken-3' className='sectionPage' />}
-          {!isMobile &&<MDBContainer id='main'>
+          {!isMobile &&<MDBContainer>
             <MDBRow>
               <MDBCol
                 md='10'
@@ -745,11 +743,11 @@ makeScreenshot = () => {
               >
                 <MDBCardBody className='text-center'>
                   <p className='pb-4'>
-                    Направьте камеру на себя под прямым углом. Вас должно быть видно в полный рост.
+                    Направте камеру на себя под прямым углом. Вас должно быть видно в полный рост.
                   </p>
-                  <MDBRow id="screenshot" className='d-flex flex-row justify-content-center row'ref="canvasWebcam">
+                  <MDBRow className='d-flex flex-row justify-content-center row'>
                         <video id="videoNoShow" playsInline ref={this.getVideo} />
-                        <canvas id='canvasWebcam' className="webcam" ref={this.getCanvas} />                  
+                        <canvas  className="webcam" ref={this.getCanvas} />                  
                   </MDBRow>
                   <MDBRow center>
                         {this.state.OnDoingExercise === false &&<MDBRow center>
@@ -785,9 +783,8 @@ makeScreenshot = () => {
       {isMobile &&<MDBContainer>
               <MDBCol>
                   <MDBRow className='d-flex flex-row justify-content-center row'>
-                        <video id="videoNoShow" width = {Width} height = {Height} playsInline ref={this.getVideo}/>
-                        <canvas  className="webcam" width = {Width} height = {Height} ref={this.canvasRef} />
-                        <a href={this.state.imgUrl} download={'webcam.png'}>Download canvas</a>
+                  <video id="videoNoShow" width = {Width} height = {Height} playsInline ref={this.getVideo}/>
+                        <canvas  className="webcam" width = {Width} height = {Height} ref={this.getCanvas} />
                   </MDBRow>
                   <MDBRow center>
                         {this.state.OnDoingExercise === false &&<MDBRow center>
@@ -797,13 +794,11 @@ makeScreenshot = () => {
                           <MDBBtn size='sm' color='indigo' onClick = {this.ChangeState("BackTilt")}>Наклон назад</MDBBtn> 
                         </MDBRow>
                         <MDBRow center> 
-                          <MDBBtn onClick={this.onClick}  >Hi</MDBBtn>
-                          {/* <MDBBtn size='sm' color='indigo' onClick = {() => this.ChangeCameraView()}>Сменить вид камеры</MDBBtn> */}
+                          <MDBBtn size='sm' color='indigo' onClick = {() => this.ChangeCameraView()}>Сменить вид камеры</MDBBtn> 
                         </MDBRow>
                         </MDBRow>}
                       {this.state.OnDoingExercise &&<MDBRow center>
                         <MDBRow center> 
-                          <a id="download" download="myImage.jpg" href={this.state.imgUrl} onclick={this.makeScreenshot()}>Download to myImage.jpg</a>
                           <MDBBtn size='sm' color="red" onClick = {this.ChangeState("Repeat")}>Повторить</MDBBtn>            
                           <MDBBtn size='sm' color='indigo' onClick = {this.ChangeState("OnDoingExercise")}>Закончить упражнение</MDBBtn>                   
                         </MDBRow>
